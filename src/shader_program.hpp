@@ -9,15 +9,20 @@
 class ShaderProgram
 {
   private:
-    GLuint m_program_id = 0;
+    GLuint program_handle_ = 0;
 
     auto loadAndCompile() -> bool;
 
-    [[nodiscard]] static auto createShader(const std::string& filepath, int shader_type) -> std::optional<GLuint>;
-    static auto loadShaderFile(const std::string& path) -> std::optional<std::string>;
+    [[nodiscard]] static auto createShader(const std::string& filepath, GLenum shader_type) -> std::optional<GLuint>;
+    static auto readFile(const std::string& path) -> std::optional<std::string>;
 
-    std::string m_vertex_shader_path;
-    std::string m_fragment_shader_path;
+    std::string vertex_shader_path_;
+    std::string fragment_shader_path_;
+
+    GLint stored_program_handle_ = 0;
+
+    void storeProgram() noexcept;
+    void restoreProgram() const noexcept;
 
   public:
     ShaderProgram(std::string vertex_shader_path, std::string fragment_shader_path);
@@ -28,10 +33,11 @@ class ShaderProgram
     auto operator=(const ShaderProgram&) -> ShaderProgram& = delete;
 
     // Enable cheap moving
-    ShaderProgram(ShaderProgram&&) noexcept = default;
-    auto operator=(ShaderProgram&&) noexcept -> ShaderProgram& = default;
+    ShaderProgram(ShaderProgram&&) noexcept;
+    auto operator=(ShaderProgram&&) noexcept -> ShaderProgram&;
 
     [[nodiscard]] auto use() const -> bool;
     auto reload() -> bool;
-    void setUniform(const std::string& name, glm::mat4 value) const;
+    void setUniform(const std::string& name, const glm::mat4& value);
+    void setUniform(const std::string& name, const glm::vec3& value);
 };
