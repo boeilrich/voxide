@@ -1,0 +1,47 @@
+#pragma once
+
+#include <cstdint>
+#include <memory>
+
+#include <glm/glm.hpp>
+
+#include "block.hpp"
+#include "chunk_mesh.hpp"
+#include "coordinates.hpp"
+
+class Chunk
+{
+  private:
+    ChunkCoord m_position;
+    bool m_dirty_flag = true;
+
+    std::unique_ptr<std::array<Block, CHUNK_SIZE>> m_blocks = nullptr;
+    std::uint16_t m_air_block_count = CHUNK_SIZE;
+
+    void initializeBlockArray();
+
+  public:
+    Chunk(ChunkCoord position) : m_position(position) {};
+    ~Chunk() = default;
+
+    // disable copying
+    Chunk(const Chunk&) = delete;
+    auto operator=(const Chunk&) -> Chunk& = delete;
+
+    // enable moving
+    Chunk(Chunk&&) noexcept = default;
+    auto operator=(Chunk&&) noexcept -> Chunk& = default;
+
+    [[nodiscard]] auto getBlockAt(LocalCoord position) const noexcept -> Block;
+    void setBlockAt(LocalCoord position, Block block, bool supress_dirty = false);
+
+    [[nodiscard]] auto getPosition() const noexcept -> ChunkCoord;
+
+    static auto calculateHash(const ChunkCoord& position) noexcept -> std::uint64_t;
+    [[nodiscard]] auto getHash() const noexcept -> std::uint64_t;
+
+    [[nodiscard]] auto isDirty() const noexcept -> bool;
+    void setDirty(bool dirty) noexcept;
+
+    [[nodiscard]] auto isEmpty() const noexcept -> bool;
+};

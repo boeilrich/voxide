@@ -1,76 +1,99 @@
-BasedOnStyle:     WebKit
-Language:         Cpp
+BasedOnStyle: Chromium
+Language: Cpp
 
-IndentWidth:                  4
-UseTab:                       Never
-TabWidth:                     4
-ColumnLimit:                  140
+Standard: Latest
 
-PointerAlignment:             Left
-ReferenceAlignment:           Pointer
-DerivePointerAlignment:       false
+UseTab: Never
+IndentWidth: 4
+ContinuationIndentWidth: 4
+TabWidth: 4
+
+ColumnLimit: 120
+PenaltyExcessCharacter: 1000
+PenaltyBreakBeforeFirstCallParameter: 1000
+
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+DerivePointerAlignment: false
+QualifierAlignment: Leave
+
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeIsMainRegex: '([-_]?(test|unittest|internal))?$'
+SortUsingDeclarations: Lexicographic
+
+IncludeCategories:
+  # C standard library
+  - Regex: '^<(assert|complex|ctype|errno|fenv|float|inttypes|iso646|limits|locale|math|setjmp|signal|stdalign|stdarg|stdatomic|stdbool|stddef|stdint|stdio|stdlib|stdnoreturn|string|tgmath|threads|time|uchar|wchar|wctype)\.h>$'
+    Priority: 1
+
+  # C++ standard library compatibility headers
+  - Regex: '^<c[a-z0-9_]+>$'
+    Priority: 2
+
+  # C++ standard library
+  - Regex: '^<[a-z][a-z0-9_]*>$'
+    Priority: 2
+
+  # POSIX / Linux / BSD system headers
+  - Regex: '^<(sys|net|netinet|arpa|linux|asm|bits|gnu|asm-generic)/'
+    Priority: 3
+
+  - Regex: '^<(unistd|fcntl|poll|epoll|signal|pthread|ifaddrs|netdb|grp|pwd|termios|ioctl|dlfcn|syslog|dirent|glob|fnmatch|wordexp|regex|iconv|langinfo|xlocale|endian|byteswap)\.h>$'
+    Priority: 3
+
+  # Third-party libraries
+  - Regex: '^<'
+    Priority: 4
+
+  # Project headers
+  - Regex: '^"'
+    Priority: 5
 
 AllowShortBlocksOnASingleLine: false
-AllowShortIfStatementsOnASingleLine:   Never
-AllowShortLoopsOnASingleLine:          false
-AllowShortCaseLabelsOnASingleLine:     false
-AllowShortFunctionsOnASingleLine:      None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
 
-SpacesInParentheses:          false
-SpacesInAngles:               false
-SpacesInSquareBrackets:       false
-SpacesInContainerLiterals:    false
-SpaceAfterTemplateKeyword:    true
+BreakBeforeBraces: Linux
 
-BinPackArguments:             true
-BinPackParameters:            true
-PenaltyExcessCharacter:       1000
-PenaltyBreakBeforeFirstCallParameter: 19
-
-BreakBeforeBraces:            Custom
-BraceWrapping:
-  AfterFunction:              true      
-  AfterControlStatement:      false    
-  AfterClass:                 true
-  AfterStruct:                true
-  AfterEnum:                  false
-  AfterNamespace:             true
-  AfterCaseLabel:             false
-  BeforeElse:                 true
-  BeforeCatch:                true
-  BeforeWhile:                false
-  BeforeLambdaBody:           false
-  IndentBraces:               false
-  SplitEmptyFunction:         true
-  SplitEmptyRecord:           true
-  SplitEmptyNamespace:        true
-
-BreakConstructorInitializers: BeforeComma
-PackConstructorInitializers:  BinPack
+BreakConstructorInitializers: BeforeColon
+PackConstructorInitializers: CurrentLine
 ConstructorInitializerIndentWidth: 4
 
-AccessModifierOffset:         -4
-AlignAfterOpenBracket:        Align
-AlignConsecutiveAssignments:  false
+SpaceBeforeParens: ControlStatements
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+
+SpacesInParentheses: false
+SpacesInContainerLiterals: true
+SpacesInAngles: false
+SpacesInSquareBrackets: false
+
+SpaceAfterCStyleCast: false
+
+BinPackArguments: true
+BinPackParameters: true
+
+AlignAfterOpenBracket: Align
+AlignOperands: Align
+AlignTrailingComments: true
+
+AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
-Standard:                     c++20
+AlignEscapedNewlines: Right
 
-SortIncludes:                 true
-IncludeBlocks:                Regroup
-IncludeCategories:
-  - Regex:           '^(<|"(gtest|gmock|benchmark)/)'
-    Priority:        1
-  - Regex:           '^"(third_party|vendor|external)/'
-    Priority:        2
-  - Regex:           '^"(public|include)/'
-    Priority:        3
-  - Regex:           '^".*\.h'
-    Priority:        4
-  - Regex:           '.*'
-    Priority:        5
+EmptyLineBeforeAccessModifier: LogicalBlock
+AccessModifierOffset: -2
 
-SpaceBeforeCtorInitializerColon: false
-SpaceBeforeInheritanceColon:     false
-SpaceBeforeRangeBasedForLoopColon: true
-FixNamespaceComments:         true
-AlignEscapedNewlines:         Right
+NamespaceIndentation: None
+FixNamespaceComments: true
+
+IndentCaseLabels: true
+IndentCaseBlocks: false
+
+Cpp11BracedListStyle: true
+
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1

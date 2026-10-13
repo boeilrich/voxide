@@ -1,8 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <stb_image.h>
 #include <vector>
+
+#include <stb/stb_image.h>
 
 #include "window.hpp"
 #include "world.hpp"
@@ -11,8 +12,7 @@
 constexpr int DEFAULT_WINDOW_WIDTH = 1920;
 constexpr int DEFAULT_WINDOW_HEIGHT = 1080;
 
-using FrameData = struct FrameData
-{
+using FrameData = struct FrameData {
     double delta_time;
     unsigned long last_time_ns;
     std::vector<double> recent_frame_times;
@@ -20,31 +20,31 @@ using FrameData = struct FrameData
 
 class Engine
 {
-private:
-    std::unique_ptr<Window> window;
-    std::unique_ptr<World> world;
+  private:
+    std::unique_ptr<Window> m_window;
+    std::unique_ptr<World> m_world;
 
-    std::unique_ptr<WorldRenderer> world_renderer;
+    std::unique_ptr<WorldRenderer> m_world_renderer;
 
-    FrameData frame_data;
-    double total_time_passed = 0.0F;
-    double time_since_last_log = 0.0F;
+    FrameData m_frame_data;
+    double m_total_time_passed = 0.0F;
+    double m_time_since_last_log = 0.0F;
 
-    bool checkbox_is_ticked = false;
-    bool checkbox_was_ticked = false;
+    bool m_checkbox_is_ticked = false;
+    bool m_checkbox_was_ticked = false;
 
-    bool should_quit = false;
+    bool m_should_quit = false;
 
-    void initialize_imgui() noexcept;
+    void initializeImGui() noexcept;
 
-    void prepare_frame() noexcept;
-    void end_frame() noexcept;
+    void prepareFrame() noexcept;
+    void endFrame() noexcept;
 
-    void update_frametimes() noexcept;
+    void updateFrametimes() noexcept;
 
-    void process_events() noexcept;
+    void processEvents() noexcept;
 
-public:
+  public:
     Engine();
     ~Engine();
 

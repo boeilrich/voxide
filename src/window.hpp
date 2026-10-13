@@ -1,31 +1,32 @@
 #pragma once
 
+#include <string>
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_video.h>
-#include <string>
 
 class Window
 {
-private:
-    SDL_Window* window_handle = nullptr;
-    SDL_GLContext glcontext = nullptr;
+  private:
+    SDL_Window* m_window_handle = nullptr;
+    SDL_GLContext m_context = nullptr;
 
-    bool visible = false;
-    bool resizable = false;
-    bool fullscreen = false;
-    bool always_on_top = false;
-    bool capturing_mouse = false;
+    bool m_visible = false;
+    bool m_resizable = false;
+    bool m_fullscreen = false;
+    bool m_always_on_top = false;
+    bool m_capturing_mouse = false;
 
-    int vsync_mode = 1;
+    int m_vsync_mode = 1;
 
-    std::pair<int, int> position;
-    std::pair<int, int> size;
+    std::pair<int, int> m_position;
+    std::pair<int, int> m_size;
 
-    std::string title;
+    std::string m_title;
 
     auto create_context() -> bool;
 
-public:
+  public:
     Window(const std::string& title, int width, int height, SDL_WindowFlags flags);
     ~Window();
 

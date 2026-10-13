@@ -4,19 +4,18 @@
 
 class WorldRenderer
 {
+  private:
+    World* m_world;
 
-private:
-    World* world;
+    GLuint m_texture_atlas_handle = 0;
 
-    GLuint texture_atlas_handle = 0;
+    std::unique_ptr<ShaderProgram> m_program;
+    std::unordered_map<std::uint64_t, std::unique_ptr<ChunkMesh>> m_meshes;
 
-    std::unique_ptr<ShaderProgram> program;
-    std::unordered_map<std::uint64_t, std::unique_ptr<ChunkMesh>> meshes;
+    auto loadTextureAtlas() -> bool;
+    void processEvents();
 
-    auto load_texture_atlas() -> bool;
-    void process_events();
-
-public:
+  public:
     WorldRenderer(World* world);
     ~WorldRenderer();
 
@@ -29,5 +28,5 @@ public:
     auto operator=(const WorldRenderer&&) -> WorldRenderer& = delete;
 
     void render();
-    auto reload_texture_atlas() -> bool;
+    auto reloadTextureAtlas() -> bool;
 };

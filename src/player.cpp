@@ -4,70 +4,69 @@
 
 #include "camera.hpp"
 
-Player::Player(bool local)
-    : local(local)
+Player::Player(bool local) : m_local(local)
 {
     if (local) {
-        this->camera.emplace(this->position, this->yaw, this->pitch, 77.0F);
+        m_camera.emplace(m_position, m_yaw, m_pitch, 77.0F);
     }
 }
 
-auto Player::is_local() const noexcept -> bool
+auto Player::isLocal() const noexcept -> bool
 {
-    return this->local;
+    return m_local;
 }
 
-auto Player::get_camera() noexcept -> Camera*
+auto Player::getCamera() noexcept -> Camera*
 {
-    if (!this->local)
+    if (!m_local)
         return nullptr;
-    return &this->camera.value();
+    return &m_camera.value();
 }
 
 void Player::tick(float delta_time)
 {
-    if (local) {
-        this->camera->set_position(this->position + glm::vec3 { 0.0F, 1.8F, 0.0F });
+    if (m_local) {
+        m_camera->setPosition(m_position + glm::vec3{0.0F, 1.8F, 0.0F});
         const bool* keys = SDL_GetKeyboardState(nullptr);
 
         const float sensitivity = 20.0F;
 
         if (keys[SDL_SCANCODE_LEFT]) {
-            this->camera->handle_look_input(-1000.0F * delta_time, 0.0F * delta_time, true);
+            m_camera->handleLookInput(-1000.0F * delta_time, 0.0F * delta_time, true);
         }
         if (keys[SDL_SCANCODE_RIGHT]) {
-            this->camera->handle_look_input(1000.0F * delta_time, 0.0F * delta_time, true);
+            m_camera->handleLookInput(1000.0F * delta_time, 0.0F * delta_time, true);
         }
 
         if (keys[SDL_SCANCODE_UP]) {
-            this->camera->handle_look_input(0.0F * delta_time, 1000.0F * delta_time, true);
+            m_camera->handleLookInput(0.0F * delta_time, 1000.0F * delta_time, true);
         }
         if (keys[SDL_SCANCODE_DOWN]) {
-            this->camera->handle_look_input(0.0F * delta_time, -1000.0F * delta_time, true);
+            m_camera->handleLookInput(0.0F * delta_time, -1000.0F * delta_time, true);
         }
 
         if (keys[SDL_SCANCODE_W]) {
-            this->set_position(this->get_position() + this->camera->get_front_vector() * sensitivity * delta_time);
+            setPosition(this->getPosition() + this->m_camera->getFrontVector() * sensitivity * delta_time);
         }
 
         if (keys[SDL_SCANCODE_S]) {
-            this->set_position(this->get_position() - this->camera->get_front_vector() * sensitivity * delta_time);
+            setPosition(this->getPosition() - this->m_camera->getFrontVector() * sensitivity * delta_time);
         }
 
         if (keys[SDL_SCANCODE_D]) {
-            this->set_position(this->get_position() + this->camera->get_right_vector() * sensitivity * delta_time);
+            setPosition(this->getPosition() + this->m_camera->getRightVector() * sensitivity * delta_time);
         }
 
         if (keys[SDL_SCANCODE_A]) {
-            this->set_position(this->get_position() - this->camera->get_right_vector() * sensitivity * delta_time);
+            setPosition(this->getPosition() - this->m_camera->getRightVector() * sensitivity * delta_time);
         }
 
         if (keys[SDL_SCANCODE_SPACE]) {
-            this->set_position(this->get_position() + glm::vec3(0.0, 1.0, 0.0) * sensitivity * delta_time);
+            setPosition(this->getPosition() + glm::vec3(0.0, 1.0, 0.0) * sensitivity * delta_time);
         }
 
         if (keys[SDL_SCANCODE_LSHIFT]) {
-            this->set_position(this->get_position() - glm::vec3(0.0, 1.0, 0.0) * sensitivity * delta_time);
+            setPosition(this->getPosition() - glm::vec3(0.0, 1.0, 0.0) * sensitivity * delta_time);
         }
     }
 }

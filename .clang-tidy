@@ -1,115 +1,74 @@
-Checks: '
-  *,
-  -altera-*,
-  -android-*,
-  -darwin-*,
-  -fuchsia-*,
-  -llvmlibc-*,
-  -mpi-*,
-  -objc-*,
-  -openmp-*,
-
-  bugprone-*,
-  -bugprone-easily-swappable-parameters,
-  -bugprone-exception-escape,
-  -bugprone-macro-parentheses,
-  -bugprone-reserved-identifier,
-
-  cert-*,
-
+Checks: >
   clang-analyzer-*,
-  -clang-analyzer-cplusplus.NewDeleteLeaks,
+  bugprone-dangling-handle,
+  bugprone-dangling-reference,
+  bugprone-infinite-loop,
+  bugprone-sizeof-expression,
+  bugprone-suspicious-missing-comma,
+  bugprone-misplaced-widening-cast,
+  bugprone-use-after-move,
+  bugprone-not-null-terminated-result,
 
-  concurrency-*,
+  performance-avoid-endl,
+  performance-expensive-value-or,
+  performance-for-range-copy,
+  performance-implicit-conversion-in-loop,
+  performance-inefficient-algorithm,
+  performance-inefficient-vector-operation,
+  performance-move-const-arg,
+  performance-move-constructor-init,
+  performance-no-automatic-move,
+  performance-no-int-to-ptr,
+  performance-noexcept-move-constructor,
+  performance-noexcept-swap,
+  performance-string-view-conversions,
+  performance-unnecessary-copy-initialization,
+  performance-unnecessary-value-param,
+  performance-use-std-move,
 
-  cppcoreguidelines-*,
-  -cppcoreguidelines-avoid-c-arrays,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-init-variables,
-  -cppcoreguidelines-macro-usage,
-  -cppcoreguidelines-no-malloc,
-  -cppcoreguidelines-non-private-member-variables-in-classes,
-  -cppcoreguidelines-owning-memory,
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-  -cppcoreguidelines-pro-bounds-constant-array-index,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
-  -cppcoreguidelines-pro-type-const-cast,
-  -cppcoreguidelines-pro-type-cstyle-cast,
-  -cppcoreguidelines-pro-type-reinterpret-cast,
-  -cppcoreguidelines-pro-type-union-access,
-  -cppcoreguidelines-pro-type-vararg,
-  -cppcoreguidelines-prefer-member-initializer
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-equals-default,
+  modernize-use-equals-delete,
+  modernize-loop-convert,
+  modernize-avoid-bind,
+  modernize-make-unique,
+  modernize-make-shared,
+  modernize-redundant-void-arg,
+  modernize-pass-by-value,
 
-  hicpp-*,
-  -hicpp-braces-around-statements,
-  -hicpp-explicit-conversions,
-  -hicpp-no-malloc,
-  -hicpp-uppercase-literal-suffix,
+  readability-function-cognitive-complexity,
+  readability-container-size-empty,
+  readability-redundant-string-cstr,
+  readability-redundant-smartptr-get,
 
-  misc-*,
-  -misc-confusable-identifiers,
-  -misc-non-private-member-variables-in-classes,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-special-member-functions,
+  cppcoreguidelines-init-variables,
+  cppcoreguidelines-narrowing-conversions,
+  cppcoreguidelines-pro-type-const-cast,
+  cppcoreguidelines-pro-type-static-cast-downcast,
 
-  modernize-*,
-  -modernize-avoid-bind,
-  -modernize-macro-to-enum,
-  -modernize-pass-by-value,
-  -modernize-raw-string-literal,
+  cert-dcl37-c,
+  cert-dcl51-cpp,
+  cert-err33-c,
+  cert-err34-c,
+  cert-exp42-c,
+  cert-exp45-c,
+  cert-oop54-cpp,
+  cert-oop57-cpp,
+  cert-oop58-cpp,
 
-  performance-*,
-
-  portability-*,
-
-  readability-*,
-  -readability-braces-around-statements,
-  -readability-convert-member-functions-to-static,
-  -readability-function-cognitive-complexity,
-  -readability-identifier-naming,
-  -readability-implicit-bool-conversion,
-  -readability-magic-numbers,
-  -readability-named-parameter,
-
-  -google-*,
-  -llvm-*,
-  -abseil-*,
-  -boost-*,
-  -linuxkernel-*,
-'
-
-CheckOptions:
-  - key:             HeaderFilterRegex
-    value:           '^(src|include|your_project_folders_here)/.*$'
-  - key:             readability-identifier-naming.WarningOnly
-    value:           true
-  - key:             readability-identifier-naming.NamespaceCase
-    value:           lower_case
-  - key:             readability-identifier-naming.ClassCase
-    value:           CamelCase
-  - key:             readability-identifier-naming.StructCase
-    value:           CamelCase
-  - key:             readability-identifier-naming.EnumCase
-    value:           CamelCase
-  - key:             readability-identifier-naming.FunctionCase
-    value:           camelBack
-  - key:             readability-identifier-naming.VariableCase
-    value:           lower_case
-  - key:             readability-identifier-naming.GlobalConstantCase
-    value:           UPPER_CASE
-  - key:             readability-identifier-naming.MemberCase
-    value:           lower_case
-  - key:             readability-identifier-naming.PrivateMemberSuffix
-    value:           _
-
-  - key:             modernize-use-nullptr.NullMacros
-    value:           'NULL,NULLPTR'
-  - key:             modernize-loop-convert.MaxCopySize
-    value:           16
-  - key:             modernize-loop-convert.MinConfidence
-    value:           reasonable
-
-  - key:             performance-unnecessary-copy-initialization.AllowConstParameters
-    value:           true
+  misc-const-correctness,
 
 WarningsAsErrors: ''
 
-FormatStyle:           file
+FormatStyle: file
+
+CheckOptions:
+  readability-function-cognitive-complexity.Threshold: 20
+
+  misc-const-correctness.TransformValues: 'true'
+  misc-const-correctness.TransformReferences: 'true'
+  misc-const-correctness.TransformPointersAsValues: 'false'

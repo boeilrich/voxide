@@ -1,24 +1,27 @@
 cmake_minimum_required(VERSION 3.31.10)
 
-project("voxide" VERSION 0.0.1 LANGUAGES C CXX)
+project("voxide" LANGUAGES C CXX)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
+endif()
 
 message("Building in ${CMAKE_BUILD_TYPE} mode")
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(CMAKE_C_STANDARD 23)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
-set_source_files_properties(
-    src/glad/glad.c
-    PROPERTIES
-    COMPILE_FLAGS "-Wno-pedantic"
+set(EXTERNAL_SOURCES
+    external/glad/gl.c
+    external/imgui/imgui.cpp
+    external/imgui/imgui_demo.cpp
+    external/imgui/imgui_draw.cpp
+    external/imgui/imgui_tables.cpp
+    external/imgui/imgui_widgets.cpp
+    external/imgui/backends/imgui_impl_opengl3.cpp
+    external/imgui/backends/imgui_impl_sdl3.cpp
 )
 
-# Setup project files
-set(SOURCES 
+add_executable(${PROJECT_NAME} 
     src/main.cpp
     src/window.cpp
     src/engine.cpp
@@ -31,26 +34,62 @@ set(SOURCES
     src/world_renderer.cpp
     src/entity.cpp
     src/player.cpp
-    
-    src/glad/glad.c
 
-    src/imgui/imgui.cpp
-    src/imgui/imgui_demo.cpp
-    src/imgui/imgui_draw.cpp
-    src/imgui/imgui_tables.cpp
-    src/imgui/imgui_widgets.cpp
-    src/imgui/backends/imgui_impl_opengl3.cpp
-    src/imgui/backends/imgui_impl_sdl3.cpp
+    ${EXTERNAL_SOURCES}
 )
 
-add_executable(${PROJECT_NAME} ${SOURCES})
-target_include_directories(${PROJECT_NAME} PRIVATE ./include ./include/imgui ./include/imgui/backends)
+target_include_directories(${PROJECT_NAME} PRIVATE ./include)
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE 
+    external
+    external/glad
+    external/imgui
+    external/imgui/backends
+)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    C_STANDARD 23
+    C_STANDARD_REQUIRED ON
+    C_EXTENSIONS OFF
+
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_source_files_properties(${EXTERNAL_SOURCES} PROPERTIES COMPILE_OPTIONS "-w")
+
+target_compile_options(${PROJECT_NAME}
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wconversion
+        -Wshadow
+        -Werror
+
+        # no optimization + sanitizers for debug build
+        $<$<CONFIG:Debug>:-O0>
+        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+        $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
+)
+
+target_link_options(${PROJECT_NAME}
+    PRIVATE
+        $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+)
+
+string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_UPPER)
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+    $<$<CONFIG:Debug>:${PROJECT_NAME_UPPER}_DEBUG>
+)
 
 find_package(SDL3 REQUIRED CONFIG)
 find_package(glm CONFIG REQUIRED)
 find_package(spdlog REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3 glm::glm spdlog::spdlog)
+
 if(APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE "-framework OpenGL")
 else()
@@ -58,15 +97,3 @@ else()
     target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
 endif()
 
-# Disable C++ Compiler extensions 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    C_EXTENSIONS OFF
-    CXX_EXTENSIONS OFF
-)
-
-# Setup compiler settings
-target_compile_features(${PROJECT_NAME} PRIVATE c_std_23 cxx_std_23)
-target_compile_options(${PROJECT_NAME} PRIVATE
-    $<$<CXX_COMPILER_ID:MSVC>:/W4 /permissive->
-    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
-)

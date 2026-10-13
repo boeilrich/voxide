@@ -1,5 +1,23 @@
-CompileFlags:
-  Remove:
-    - -fmodules-ts
-    - -fdeps-format=*
-    - -fmodule-mapper=*
+Index:
+  Background: Build
+
+Completion:
+  AllScopes: true
+  ArgumentLists: FullPlaceholders
+
+Hover:
+  ShowAKA: true
+
+InlayHints:
+  Enabled: true
+  ParameterNames: true
+  DeducedTypes: true
+  Designators: true
+  BlockEnd: true
+
+---
+If:
+  PathMatch: .*/(third_party|vendor|generated|external|build)/.*
+
+Diagnostics:
+  Suppress: '*'

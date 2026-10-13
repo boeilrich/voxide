@@ -1,36 +1,36 @@
 #include "entity.hpp"
 
-auto Entity::get_id() const noexcept -> std::uint64_t
+auto Entity::getID() const noexcept -> std::uint64_t
 {
-    return this->entity_id;
+    return m_entity_id;
 }
 
-auto Entity::get_position() const noexcept -> glm::vec3
+auto Entity::getPosition() const noexcept -> glm::vec3
 {
-    return this->position;
+    return m_position;
 }
 
-void Entity::set_position(glm::vec3 position) noexcept
+void Entity::setPosition(glm::vec3 position) noexcept
 {
-    this->position = position;
+    m_position = position;
 }
 
-auto Entity::get_yaw() const noexcept -> float
+auto Entity::getYaw() const noexcept -> float
 {
-    return this->yaw;
+    return m_yaw;
 }
 
-void Entity::set_yaw(float yaw) noexcept
+void Entity::setYaw(float yaw) noexcept
 {
-    this->yaw = yaw;
+    m_yaw = yaw;
 }
 
-auto Entity::get_pitch() const noexcept -> float
+auto Entity::getPitch() const noexcept -> float
 {
-    return this->pitch;
+    return m_pitch;
 }
 
-void Entity::set_pitch(float pitch) noexcept
+void Entity::setPitch(float pitch) noexcept
 {
-    this->pitch = pitch;
+    m_pitch = pitch;
 }

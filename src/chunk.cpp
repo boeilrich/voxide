@@ -4,65 +4,64 @@
 #include "chunk_mesh.hpp"
 #include "coordinates.hpp"
 
-void Chunk::initialize_block_array()
+void Chunk::initializeBlockArray()
 {
-    if (!this->is_empty()) {
+    if (!isEmpty()) {
         return;
     }
 
-    this->blocks = std::make_unique<std::array<Block, CHUNK_SIZE>>();
-    this->blocks->fill(Block::AIR);
+    m_blocks = std::make_unique<std::array<Block, CHUNK_SIZE>>();
+    m_blocks->fill(Block::AIR);
 }
 
-auto Chunk::get_block_at(LocalCoord position) const noexcept -> Block
+auto Chunk::getBlockAt(LocalCoord position) const noexcept -> Block
 {
-    if (this->is_empty()) {
+    if (isEmpty()) {
         return Block::AIR;
     }
 
-    return (*this->blocks)[position.to_index()];
+    return (*m_blocks)[position.to_index()];
 }
 
-void Chunk::set_block_at(LocalCoord position, Block block, bool supress_dirty)
+void Chunk::setBlockAt(LocalCoord position, Block block, bool supress_dirty)
 {
-    if (this->is_empty() && block == Block::AIR) {
+    if (isEmpty() && block == Block::AIR) {
         return;
     }
 
-    if (this->is_empty()) {
-        this->initialize_block_array();
+    if (isEmpty()) {
+        initializeBlockArray();
     }
 
     const std::uint16_t index = position.to_index();
-    Block current_block = (*this->blocks)[index];
+    Block current_block = (*this->m_blocks)[index];
 
     if (current_block != block) {
-        (*this->blocks)[index] = block;
+        (*m_blocks)[index] = block;
 
         if (block != Block::AIR && current_block == Block::AIR) {
-            this->air_block_count--;
-        }
-        else if (block == Block::AIR && current_block != Block::AIR) {
-            this->air_block_count++;
+            m_air_block_count--;
+        } else if (block == Block::AIR && current_block != Block::AIR) {
+            m_air_block_count++;
         }
 
         // delete chunk array if chunk is completly made of air
-        if (air_block_count == CHUNK_SIZE) {
-            this->blocks = nullptr;
+        if (m_air_block_count == CHUNK_SIZE) {
+            m_blocks = nullptr;
         }
     }
 
     if (!supress_dirty) {
-        this->dirty = true;
+        m_dirty_flag = true;
     }
 }
 
-auto Chunk::get_position() const noexcept -> ChunkCoord
+auto Chunk::getPosition() const noexcept -> ChunkCoord
 {
-    return this->position;
+    return m_position;
 }
 
-auto Chunk::calculate_hash(const ChunkCoord& position) noexcept -> uint64_t
+auto Chunk::calculateHash(const ChunkCoord& position) noexcept -> uint64_t
 {
     auto xpos = static_cast<std::uint64_t>(static_cast<std::uint32_t>(position.x));
     auto ypos = static_cast<std::uint64_t>(static_cast<std::uint32_t>(position.y));
@@ -83,22 +82,22 @@ auto Chunk::calculate_hash(const ChunkCoord& position) noexcept -> uint64_t
     return hash;
 }
 
-auto Chunk::get_hash() const noexcept -> std::uint64_t
+auto Chunk::getHash() const noexcept -> std::uint64_t
 {
-    return Chunk::calculate_hash(this->position);
+    return Chunk::calculateHash(m_position);
 }
 
-auto Chunk::is_dirty() const noexcept -> bool
+auto Chunk::isDirty() const noexcept -> bool
 {
-    return this->dirty;
+    return m_dirty_flag;
 }
 
-void Chunk::set_dirty(bool dirty) noexcept
+void Chunk::setDirty(bool dirty) noexcept
 {
-    this->dirty = dirty;
+    m_dirty_flag = dirty;
 }
 
-auto Chunk::is_empty() const noexcept -> bool
+auto Chunk::isEmpty() const noexcept -> bool
 {
-    return this->air_block_count == CHUNK_SIZE;
+    return m_air_block_count == CHUNK_SIZE;
 }

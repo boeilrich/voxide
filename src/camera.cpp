@@ -1,21 +1,22 @@
 #include "camera.hpp"
 
 #include <algorithm>
+
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <spdlog/spdlog.h>
 
 Camera::Camera(glm::vec3 position, float yaw, float pitch, float fovy, float aspect_ratio) noexcept
-    : position(position)
-    , yaw(yaw)
-    , pitch(pitch)
-    , fovy(fovy)
-    , aspect_ratio(aspect_ratio)
+    : m_position(position),
+      m_yaw(yaw),
+      m_pitch(pitch),
+      m_fovy(fovy),
+      m_aspect_ratio(aspect_ratio)
 {
-    spdlog::trace("Creating Camera: \n > x={}, y={}, z={}\n > yaw={}, pitch={}\n > fovy={}\n > aspect-ratio={}", position.x, position.y,
-                  position.z, yaw, pitch, fovy, aspect_ratio);
+    spdlog::trace("Creating Camera: \n > x={}, y={}, z={}\n > yaw={}, pitch={}\n > fovy={}\n > aspect-ratio={}",
+                  position.x, position.y, position.z, yaw, pitch, fovy, aspect_ratio);
 
-    this->update_direction_vectors();
+    updateDirectionVectors();
 }
 
 Camera::~Camera()
@@ -23,110 +24,110 @@ Camera::~Camera()
     spdlog::trace("Destroying Camera");
 }
 
-void Camera::update_direction_vectors() noexcept
+void Camera::updateDirectionVectors() noexcept
 {
     glm::vec3 new_front_vector;
 
-    new_front_vector.x = std::cos(glm::radians(this->yaw)) * std::cos(glm::radians(this->pitch));
-    new_front_vector.y = std::sin(glm::radians(this->pitch));
-    new_front_vector.z = std::sin(glm::radians(this->yaw)) * std::cos(glm::radians(this->pitch));
+    new_front_vector.x = std::cos(glm::radians(m_yaw)) * std::cos(glm::radians(m_pitch));
+    new_front_vector.y = std::sin(glm::radians(m_pitch));
+    new_front_vector.z = std::sin(glm::radians(m_yaw)) * std::cos(glm::radians(m_pitch));
 
-    this->front = glm::normalize(new_front_vector);
-    this->right = glm::normalize(glm::cross(this->front, WORLD_UP));
-    this->up = glm::normalize(glm::cross(this->right, this->front));
+    m_front = glm::normalize(new_front_vector);
+    m_right = glm::normalize(glm::cross(m_front, WORLD_UP));
+    m_up = glm::normalize(glm::cross(m_right, m_front));
 }
 
-void Camera::handle_look_input(float xoffset, float yoffset, bool constrain_pitch = true) noexcept
+void Camera::handleLookInput(float xoffset, float yoffset, bool constrain_pitch = true) noexcept
 {
-    xoffset *= this->look_sensitivity;
-    yoffset *= this->look_sensitivity;
+    xoffset *= m_look_sensitivity;
+    yoffset *= m_look_sensitivity;
 
-    this->yaw += xoffset;
-    this->pitch += yoffset;
+    m_yaw += xoffset;
+    m_pitch += yoffset;
 
     if (constrain_pitch) {
-        this->pitch = std::min(this->pitch, 89.999F);
-        this->pitch = std::max(this->pitch, -89.999F);
+        m_pitch = std::min(m_pitch, 89.999F);
+        m_pitch = std::max(m_pitch, -89.999F);
     }
 
-    this->yaw = std::fmod(this->yaw, 360.0F);
+    m_yaw = std::fmod(m_yaw, 360.0F);
 
-    this->update_direction_vectors();
+    updateDirectionVectors();
 }
 
-void Camera::set_position(glm::vec3 position) noexcept
+void Camera::setPosition(glm::vec3 position) noexcept
 {
-    this->position = position;
+    m_position = position;
 }
 
-void Camera::set_yaw(float yaw) noexcept
+void Camera::setYaw(float yaw) noexcept
 {
-    this->yaw = yaw;
-    this->update_direction_vectors();
+    m_yaw = yaw;
+    updateDirectionVectors();
 }
 
-void Camera::set_pitch(float pitch) noexcept
+void Camera::setPitch(float pitch) noexcept
 {
-    this->pitch = pitch;
-    this->update_direction_vectors();
+    m_pitch = pitch;
+    updateDirectionVectors();
 }
 
-void Camera::set_aspect_ratio(float aspect_ratio) noexcept
+void Camera::setAspectRatio(float aspect_ratio) noexcept
 {
-    this->aspect_ratio = aspect_ratio;
+    m_aspect_ratio = aspect_ratio;
 }
 
-void Camera::set_look_sensitivity(float look_sensitivity) noexcept
+void Camera::setLookSensitivity(float look_sensitivity) noexcept
 {
-    this->look_sensitivity = look_sensitivity;
+    m_look_sensitivity = look_sensitivity;
 }
 
-auto Camera::get_position() const noexcept -> glm::vec3
+auto Camera::getPosition() const noexcept -> glm::vec3
 {
-    return this->position;
+    return m_position;
 }
 
-auto Camera::get_yaw() const noexcept -> float
+auto Camera::getYaw() const noexcept -> float
 {
-    return this->yaw;
+    return m_yaw;
 }
 
-auto Camera::get_pitch() const noexcept -> float
+auto Camera::getPitch() const noexcept -> float
 {
-    return this->pitch;
+    return m_pitch;
 }
 
-auto Camera::get_front_vector() const noexcept -> glm::vec3
+auto Camera::getFrontVector() const noexcept -> glm::vec3
 {
-    return this->front;
+    return m_front;
 }
 
-auto Camera::get_up_vector() const noexcept -> glm::vec3
+auto Camera::getUpVector() const noexcept -> glm::vec3
 {
-    return this->up;
+    return m_up;
 }
 
-auto Camera::get_right_vector() const noexcept -> glm::vec3
+auto Camera::getRightVector() const noexcept -> glm::vec3
 {
-    return this->right;
+    return m_right;
 }
 
-auto Camera::get_aspect_ratio() const noexcept -> float
+auto Camera::getAspectRatio() const noexcept -> float
 {
-    return this->aspect_ratio;
+    return m_aspect_ratio;
 }
 
-auto Camera::get_look_sensitivity() const noexcept -> float
+auto Camera::getLookSensitivity() const noexcept -> float
 {
-    return this->look_sensitivity;
+    return m_look_sensitivity;
 }
 
-auto Camera::get_view_matrix() const noexcept -> glm::mat4
+auto Camera::getViewMatrix() const noexcept -> glm::mat4
 {
-    return glm::lookAt(this->position, this->position + this->front, this->up);
+    return glm::lookAt(m_position, m_position + m_front, m_up);
 }
 
-auto Camera::get_projection_matrix() const noexcept -> glm::mat4
+auto Camera::getProjectionMatrix() const noexcept -> glm::mat4
 {
-    return glm::perspective(glm::radians(this->fovy), this->aspect_ratio, NEAR_PLANE, FAR_PLANE);
+    return glm::perspective(glm::radians(m_fovy), m_aspect_ratio, NEAR_PLANE, FAR_PLANE);
 }

@@ -1,25 +1,25 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <optional>
 #include <string>
 
-#include "glad/glad.h"
+#include <glad/gl.h>
+#include <glm/glm.hpp>
 
 class ShaderProgram
 {
-private:
-    GLuint gl_program_id = 0;
+  private:
+    GLuint m_program_id = 0;
 
-    auto load_and_compile() -> bool;
+    auto loadAndCompile() -> bool;
 
-    [[nodiscard]] static auto create_shader(const std::string& filepath, int shader_type) -> std::optional<GLuint>;
-    static auto load_shader_file(const std::string& path) -> std::optional<std::string>;
+    [[nodiscard]] static auto createShader(const std::string& filepath, int shader_type) -> std::optional<GLuint>;
+    static auto loadShaderFile(const std::string& path) -> std::optional<std::string>;
 
-    std::string vertex_shader_path;
-    std::string fragment_shader_path;
+    std::string m_vertex_shader_path;
+    std::string m_fragment_shader_path;
 
-public:
+  public:
     ShaderProgram(std::string vertex_shader_path, std::string fragment_shader_path);
     ~ShaderProgram();
 
@@ -33,5 +33,5 @@ public:
 
     [[nodiscard]] auto use() const -> bool;
     auto reload() -> bool;
-    void set_uniform(const std::string& name, glm::mat4 value) const;
+    void setUniform(const std::string& name, glm::mat4 value) const;
 };

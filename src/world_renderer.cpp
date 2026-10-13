@@ -1,27 +1,27 @@
 #include "world_renderer.hpp"
 
+#include <memory>
+
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
-#include <memory>
 #include <spdlog/spdlog.h>
-#include <stb_image.h>
+#include <stb/stb_image.h>
 
 #include "world.hpp"
 
-WorldRenderer::WorldRenderer(World* world)
-    : world(world)
+WorldRenderer::WorldRenderer(World* world) : m_world(world)
 {
-    this->program = std::make_unique<ShaderProgram>("./assets/shader/vertex.glsl", "./assets/shader/fragment.glsl");
+    m_program = std::make_unique<ShaderProgram>("./assets/shader/vertex.glsl", "./assets/shader/fragment.glsl");
 
-    this->load_texture_atlas();
+    loadTextureAtlas();
 }
 
 WorldRenderer::~WorldRenderer()
 {
-    glDeleteTextures(1, &this->texture_atlas_handle);
+    glDeleteTextures(1, &m_texture_atlas_handle);
 }
 
-auto WorldRenderer::load_texture_atlas() -> bool
+auto WorldRenderer::loadTextureAtlas() -> bool
 {
     int atlas_width = 0;
     int atlas_height = 0;
@@ -33,11 +33,11 @@ auto WorldRenderer::load_texture_atlas() -> bool
     }
 
     // generate texture if it does not exist
-    if (this->texture_atlas_handle == 0) {
-        glGenTextures(1, &this->texture_atlas_handle);
+    if (m_texture_atlas_handle == 0) {
+        glGenTextures(1, &m_texture_atlas_handle);
     }
 
-    glBindTexture(GL_TEXTURE_2D, this->texture_atlas_handle);
+    glBindTexture(GL_TEXTURE_2D, m_texture_atlas_handle);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -50,62 +50,60 @@ auto WorldRenderer::load_texture_atlas() -> bool
     return true;
 }
 
-void WorldRenderer::process_events()
+void WorldRenderer::processEvents()
 {
-
-    auto& events = this->world->get_events();
+    auto& events = m_world->getEvents();
 
     while (!events.empty()) {
         auto event = events.front();
         events.pop();
 
         switch (event.type) {
-        case WorldEventType::ChunkLoaded: {
-            const auto [iter, inserted] = meshes.emplace(event.hash, std::make_unique<ChunkMesh>(event.position));
-            break;
-        }
-        case WorldEventType::ChunkUnloaded: {
-            break;
-        }
-        case WorldEventType::ChunkDirty: {
-            auto& mesh = meshes.at(event.hash);
-            mesh->generate(*world->try_get_chunk(event.position), *this->world);
-            break;
-        }
-        default:
-            break;
+            case WorldEventType::ChunkLoaded: {
+                m_meshes.emplace(event.hash, std::make_unique<ChunkMesh>(event.position));
+                break;
+            }
+            case WorldEventType::ChunkUnloaded: {
+                break;
+            }
+            case WorldEventType::ChunkDirty: {
+                auto& mesh = m_meshes.at(event.hash);
+                mesh->generate(*m_world->tryGetChunk(event.position), *m_world);
+                break;
+            }
+            default:
+                break;
         }
     }
 }
 
 void WorldRenderer::render()
 {
-    this->process_events();
+    processEvents();
 
-    if (!this->program->use()) {
+    if (!m_program->use()) {
         spdlog::error("Failed to use Shader Program");
     }
 
-    Camera* camera = this->world->get_local_player()->get_camera();
+    Camera* camera = m_world->getLocalPlayer()->getCamera();
 
-    this->program->set_uniform("view", camera->get_view_matrix());
-    this->program->set_uniform("projection", camera->get_projection_matrix());
+    m_program->setUniform("view", camera->getViewMatrix());
+    m_program->setUniform("projection", camera->getProjectionMatrix());
 
-    for (auto& entry : this->meshes) {
-
-        ChunkCoord position = entry.second->get_position();
+    for (auto& entry : m_meshes) {
+        ChunkCoord position = entry.second->getPosition();
         auto model = glm::mat4(1.0F);
 
-        model = glm::translate(model,
-                               { position.x * static_cast<int>(CHUNK_SIZE_X), position.y * static_cast<int>(CHUNK_SIZE_Y),
-                                 position.z * static_cast<int>(CHUNK_SIZE_Z) });
+        model = glm::translate(model, {position.x * static_cast<int>(CHUNK_SIZE_X),
+                                       position.y * static_cast<int>(CHUNK_SIZE_Y),
+                                       position.z * static_cast<int>(CHUNK_SIZE_Z)});
 
-        program->set_uniform("model", model);
+        m_program->setUniform("model", model);
         entry.second->render();
     }
 }
 
-auto WorldRenderer::reload_texture_atlas() -> bool
+auto WorldRenderer::reloadTextureAtlas() -> bool
 {
-    return this->load_texture_atlas();
+    return loadTextureAtlas();
 }
