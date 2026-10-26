@@ -12,18 +12,18 @@
 #include "coordinates.hpp"
 #include "world.hpp"
 
-ChunkMesh::ChunkMesh(ChunkCoord position) : m_position(position)
+ChunkMesh::ChunkMesh(ChunkCoord position) : position_(position)
 {
-    glGenBuffers(1, &m_VBO);
-    glGenBuffers(1, &m_EBO);
-    glGenVertexArrays(1, &m_VAO);
+    glGenBuffers(1, &VBO_);
+    glGenBuffers(1, &EBO_);
+    glGenVertexArrays(1, &VAO_);
 
-    if (m_VBO == 0 || m_EBO == 0) {
+    if (VBO_ == 0 || EBO_ == 0) {
         GLenum error = glGetError();
         spdlog::error("glGenBuffers returned an Error: {} ", error);
         throw std::runtime_error("glGenBuffers returned an Error");
     }
-    if (m_VAO == 0) {
+    if (VAO_ == 0) {
         GLenum error = glGetError();
         spdlog::error("glGenVertexArrays returned an Error: {}", error);
         throw std::runtime_error("glGenVertexArrays returned an Error");
@@ -32,21 +32,21 @@ ChunkMesh::ChunkMesh(ChunkCoord position) : m_position(position)
 
 ChunkMesh::~ChunkMesh()
 {
-    glDeleteVertexArrays(1, &m_VAO);
-    glDeleteBuffers(1, &m_VBO);
-    glDeleteBuffers(1, &m_EBO);
+    glDeleteVertexArrays(1, &VAO_);
+    glDeleteBuffers(1, &VBO_);
+    glDeleteBuffers(1, &EBO_);
 }
 
 ChunkMesh::ChunkMesh(ChunkMesh&& other) noexcept
-    : m_VAO(other.m_VAO),
-      m_VBO(other.m_VBO),
-      m_EBO(other.m_EBO),
-      m_index_count(other.m_index_count)
+    : VAO_(other.VAO_),
+      VBO_(other.VBO_),
+      EBO_(other.EBO_),
+      index_count_(other.index_count_)
 {
-    other.m_VAO = 0;
-    other.m_VBO = 0;
-    other.m_EBO = 0;
-    other.m_index_count = 0;
+    other.VAO_ = 0;
+    other.VBO_ = 0;
+    other.EBO_ = 0;
+    other.index_count_ = 0;
 }
 
 auto ChunkMesh::operator=(ChunkMesh&& other) noexcept -> ChunkMesh&
@@ -55,22 +55,22 @@ auto ChunkMesh::operator=(ChunkMesh&& other) noexcept -> ChunkMesh&
         return *this;
     }
 
-    if (m_VAO)
-        glDeleteVertexArrays(1, &m_VAO);
-    if (m_VBO)
-        glDeleteBuffers(1, &m_VBO);
-    if (m_EBO)
-        glDeleteBuffers(1, &m_EBO);
+    if (VAO_)
+        glDeleteVertexArrays(1, &VAO_);
+    if (VBO_)
+        glDeleteBuffers(1, &VBO_);
+    if (EBO_)
+        glDeleteBuffers(1, &EBO_);
 
-    m_VAO = other.m_VAO;
-    m_VBO = other.m_VBO;
-    m_EBO = other.m_EBO;
-    m_index_count = other.m_index_count;
+    VAO_ = other.VAO_;
+    VBO_ = other.VBO_;
+    EBO_ = other.EBO_;
+    index_count_ = other.index_count_;
 
-    other.m_VAO = 0;
-    other.m_VBO = 0;
-    other.m_EBO = 0;
-    other.m_index_count = 0;
+    other.VAO_ = 0;
+    other.VBO_ = 0;
+    other.EBO_ = 0;
+    other.index_count_ = 0;
 
     return *this;
 }
@@ -136,7 +136,7 @@ auto ChunkMesh::generateAOValues(const Chunk& chunk, const std::array<Chunk*, 26
 
 [[nodiscard]] auto ChunkMesh::getPosition() const noexcept -> ChunkCoord
 {
-    return this->m_position;
+    return this->position_;
 }
 
 void ChunkMesh::generate(const Chunk& chunk, const World& world)
@@ -237,9 +237,9 @@ void ChunkMesh::generate(const Chunk& chunk, const World& world)
         }
     }
 
-    glBindVertexArray(this->m_VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, this->m_VBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->m_EBO);
+    glBindVertexArray(this->VAO_);
+    glBindBuffer(GL_ARRAY_BUFFER, this->VBO_);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->EBO_);
 
     auto verticies_size = static_cast<GLsizei>(packed_vertex_data.size() * sizeof(std::uint32_t));
     auto indicies_size = static_cast<GLsizei>(indicies.size() * sizeof(std::uint32_t));
@@ -250,11 +250,11 @@ void ChunkMesh::generate(const Chunk& chunk, const World& world)
     glVertexAttribIPointer(0, 1, GL_UNSIGNED_INT, sizeof(std::uint32_t), nullptr);
     glEnableVertexAttribArray(0);
 
-    this->m_index_count = static_cast<GLsizei>(indicies.size());
+    this->index_count_ = static_cast<GLsizei>(indicies.size());
 }
 
 void ChunkMesh::render() const noexcept
 {
-    glBindVertexArray(this->m_VAO);
-    glDrawElements(GL_TRIANGLES, this->m_index_count, GL_UNSIGNED_INT, nullptr);
+    glBindVertexArray(this->VAO_);
+    glDrawElements(GL_TRIANGLES, this->index_count_, GL_UNSIGNED_INT, nullptr);
 }

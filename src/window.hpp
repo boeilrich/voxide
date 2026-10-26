@@ -8,21 +8,21 @@
 class Window
 {
   private:
-    SDL_Window* m_window_handle = nullptr;
-    SDL_GLContext m_context = nullptr;
+    SDL_Window* window_handle_ = nullptr;
+    SDL_GLContext context_ = nullptr;
 
-    bool m_visible = false;
-    bool m_resizable = false;
-    bool m_fullscreen = false;
-    bool m_always_on_top = false;
-    bool m_capturing_mouse = false;
+    bool visible_ = false;
+    bool resizeable_ = false;
+    bool fullscreen_ = false;
+    bool always_on_top_ = false;
+    bool capturing_mouse_ = false;
 
-    int m_vsync_mode = 1;
+    int vsync_mode_ = 1;
 
-    std::pair<int, int> m_position;
-    std::pair<int, int> m_size;
+    std::pair<int, int> position_;
+    std::pair<int, int> size_;
 
-    std::string m_title;
+    std::string title_;
 
     auto create_context() -> bool;
 

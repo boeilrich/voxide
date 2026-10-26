@@ -5,12 +5,12 @@
 class WorldRenderer
 {
   private:
-    World* m_world;
+    World* world_;
 
-    GLuint m_texture_atlas_handle = 0;
+    GLuint texture_atlas_handle_ = 0;
 
-    std::unique_ptr<ShaderProgram> m_program;
-    std::unordered_map<std::uint64_t, std::unique_ptr<ChunkMesh>> m_meshes;
+    std::unique_ptr<ShaderProgram> program_;
+    std::unordered_map<std::uint64_t, std::unique_ptr<ChunkMesh>> meshes_;
 
     auto loadTextureAtlas() -> bool;
     void processEvents();

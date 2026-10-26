@@ -90,13 +90,13 @@ using VertexData = struct VertexData {
 class ChunkMesh
 {
   private:
-    GLuint m_VAO = 0;
-    GLuint m_VBO = 0;
-    GLuint m_EBO = 0;
+    GLuint VAO_ = 0;
+    GLuint VBO_ = 0;
+    GLuint EBO_ = 0;
 
-    GLsizei m_index_count = 0;
+    GLsizei index_count_ = 0;
 
-    ChunkCoord m_position{};
+    ChunkCoord position_{};
 
     [[nodiscard]] auto packVertexData(VertexData data) const noexcept -> std::uint32_t;
 

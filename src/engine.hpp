@@ -21,19 +21,19 @@ using FrameData = struct FrameData {
 class Engine
 {
   private:
-    std::unique_ptr<Window> m_window;
-    std::unique_ptr<World> m_world;
+    std::unique_ptr<Window> window_;
+    std::unique_ptr<World> world_;
 
-    std::unique_ptr<WorldRenderer> m_world_renderer;
+    std::unique_ptr<WorldRenderer> world_renderer_;
 
-    FrameData m_frame_data;
-    double m_total_time_passed = 0.0F;
-    double m_time_since_last_log = 0.0F;
+    FrameData frame_data_;
+    double total_time_passed_ = 0.0F;
+    double time_since_last_log_ = 0.0F;
 
-    bool m_checkbox_is_ticked = false;
-    bool m_checkbox_was_ticked = false;
+    bool checkbox_is_ticked_ = false;
+    bool checkbox_was_ticked_ = false;
 
-    bool m_should_quit = false;
+    bool should_quit_ = false;
 
     void initializeImGui() noexcept;
 

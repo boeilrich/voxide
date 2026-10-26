@@ -40,53 +40,53 @@ void Engine::initializeImGui() noexcept
     ImGuiIO& imgui_io = ImGui::GetIO();
     imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-    ImGui_ImplSDL3_InitForOpenGL(this->m_window->get_window_handle(), this->m_window->get_context());
+    ImGui_ImplSDL3_InitForOpenGL(this->window_->get_window_handle(), this->window_->get_context());
     ImGui_ImplOpenGL3_Init();
 }
 
 void Engine::init()
 {
-    this->m_window =
+    this->window_ =
         std::make_unique<Window>("test window", DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
 
-    this->m_world = std::make_unique<World>();
-    this->m_world->generateArea(ChunkCoord(0, 0, 0), 10, 3, 10);
+    this->world_ = std::make_unique<World>();
+    this->world_->generateArea(ChunkCoord(0, 0, 0), 10, 3, 10);
 
-    this->m_world_renderer = std::make_unique<WorldRenderer>(this->m_world.get());
+    this->world_renderer_ = std::make_unique<WorldRenderer>(this->world_.get());
 
     glCullFace(GL_BACK);
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
-    this->m_window->set_capturing_mouse(true);
+    this->window_->set_capturing_mouse(true);
     this->initializeImGui();
 }
 
 void Engine::updateFrametimes() noexcept
 {
-    this->m_frame_data.delta_time =
-        static_cast<double>((SDL_GetTicksNS() - this->m_frame_data.last_time_ns)) / 1000000000.0;
-    this->m_frame_data.last_time_ns = SDL_GetTicksNS();
-    this->m_frame_data.recent_frame_times.push_back(this->m_frame_data.delta_time);
+    this->frame_data_.delta_time =
+        static_cast<double>((SDL_GetTicksNS() - this->frame_data_.last_time_ns)) / 1000000000.0;
+    this->frame_data_.last_time_ns = SDL_GetTicksNS();
+    this->frame_data_.recent_frame_times.push_back(this->frame_data_.delta_time);
 
-    this->m_total_time_passed += this->m_frame_data.delta_time;
-    this->m_time_since_last_log += this->m_frame_data.delta_time;
+    this->total_time_passed_ += this->frame_data_.delta_time;
+    this->time_since_last_log_ += this->frame_data_.delta_time;
 
-    this->m_window->set_title(std::format("test window | {:.4}s", this->m_total_time_passed));
+    this->window_->set_title(std::format("test window | {:.4}s", this->total_time_passed_));
 
-    if (this->m_time_since_last_log > 5.0) {
+    if (this->time_since_last_log_ > 5.0) {
         double average_frame_time = 0.0;
-        for (auto it = this->m_frame_data.recent_frame_times.begin(); it <= this->m_frame_data.recent_frame_times.end();
+        for (auto it = this->frame_data_.recent_frame_times.begin(); it <= this->frame_data_.recent_frame_times.end();
              it++) {
             average_frame_time += *it;
         }
 
-        average_frame_time /= static_cast<double>(this->m_frame_data.recent_frame_times.size());
+        average_frame_time /= static_cast<double>(this->frame_data_.recent_frame_times.size());
 
         spdlog::debug("{} frames rendered in 5.0 seconds. average frametime: {:.4f}, FPS: {}",
-                      this->m_frame_data.recent_frame_times.size(), average_frame_time, 1 / average_frame_time);
-        this->m_time_since_last_log -= 5.0F;
-        this->m_frame_data.recent_frame_times.clear();
+                      this->frame_data_.recent_frame_times.size(), average_frame_time, 1 / average_frame_time);
+        this->time_since_last_log_ -= 5.0F;
+        this->frame_data_.recent_frame_times.clear();
     }
 }
 
@@ -95,28 +95,28 @@ void Engine::processEvents() noexcept
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         // Send all events to imgui, if the camera is not being controlled
-        if (!this->m_window->is_capturing_mouse()) {
+        if (!this->window_->is_capturing_mouse()) {
             ImGui_ImplSDL3_ProcessEvent(&event);
         }
 
         // Send all window related events to the window
         if (event.type >= SDL_EVENT_WINDOW_FIRST && event.type <= SDL_EVENT_WINDOW_LAST) {
-            this->m_window->handle_event(event.window);
+            this->window_->handle_event(event.window);
         }
 
-        if (event.type == SDL_EVENT_MOUSE_MOTION && this->m_window->is_capturing_mouse()) {
-            this->m_world->getLocalPlayer()->getCamera()->handleLookInput(event.motion.xrel, -event.motion.yrel, true);
+        if (event.type == SDL_EVENT_MOUSE_MOTION && this->window_->is_capturing_mouse()) {
+            this->world_->getLocalPlayer()->getCamera()->handleLookInput(event.motion.xrel, -event.motion.yrel, true);
         }
         if (event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_ESCAPE) {
-            this->m_window->set_capturing_mouse(!this->m_window->is_capturing_mouse());
+            this->window_->set_capturing_mouse(!this->window_->is_capturing_mouse());
         }
         if (event.type == SDL_EVENT_WINDOW_RESIZED) {
-            this->m_world->getLocalPlayer()->getCamera()->setAspectRatio(static_cast<float>(event.window.data1) /
-                                                                         static_cast<float>(event.window.data2));
+            this->world_->getLocalPlayer()->getCamera()->setAspectRatio(static_cast<float>(event.window.data1) /
+                                                                        static_cast<float>(event.window.data2));
         }
 
         if (event.type == SDL_EVENT_QUIT) {
-            this->m_should_quit = true;
+            this->should_quit_ = true;
         }
     }
 }
@@ -139,50 +139,50 @@ void Engine::endFrame() noexcept
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    SDL_GL_SwapWindow(this->m_window->get_window_handle());
+    SDL_GL_SwapWindow(this->window_->get_window_handle());
 }
 
 void Engine::run()
 {
-    this->m_frame_data.last_time_ns = SDL_GetTicksNS();
+    this->frame_data_.last_time_ns = SDL_GetTicksNS();
 
-    while (!this->m_should_quit) {
+    while (!this->should_quit_) {
         this->prepareFrame();
 
         this->processEvents();
 
-        if (this->m_window->is_capturing_mouse()) {
-            this->m_world->getLocalPlayer()->tick(static_cast<float>(this->m_frame_data.delta_time));
+        if (this->window_->is_capturing_mouse()) {
+            this->world_->getLocalPlayer()->tick(static_cast<float>(this->frame_data_.delta_time));
         }
 
         ImGui::Begin("Info", nullptr, 0);
 
-        Player* player = this->m_world->getLocalPlayer();
+        Player* player = this->world_->getLocalPlayer();
         Camera* camera = player->getCamera();
         glm::vec3 position = camera->getPosition();
         ImGui::Text("Position: X: %.4f Y: %.4f Z: %.4f", position.x, position.y, position.z);
         ImGui::Text("Orientation: Yaw: %.2f Pitch: %.2f", camera->getYaw(), camera->getPitch());
         ImGui::End();
 
-        if (!this->m_window->is_capturing_mouse()) {
+        if (!this->window_->is_capturing_mouse()) {
             ImGui::Begin("Settings", nullptr, 0);
-            ImGui::Checkbox("Wireframe", &this->m_checkbox_is_ticked);
+            ImGui::Checkbox("Wireframe", &this->checkbox_is_ticked_);
 
-            if (this->m_checkbox_is_ticked != this->m_checkbox_was_ticked) {
-                if (this->m_checkbox_is_ticked) {
+            if (this->checkbox_is_ticked_ != this->checkbox_was_ticked_) {
+                if (this->checkbox_is_ticked_) {
                     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
                 } else {
                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
                 }
 
-                this->m_checkbox_was_ticked = this->m_checkbox_is_ticked;
+                this->checkbox_was_ticked_ = this->checkbox_is_ticked_;
             }
 
             ImGui::End();
         }
 
-        m_world->tick();
-        m_world_renderer->render();
+        world_->tick();
+        world_renderer_->render();
 
         this->endFrame();
     }
@@ -192,5 +192,5 @@ void Engine::run()
     ImGui::DestroyContext();
 
     // needed to avoid segmentation fault when force quitting
-    SDL_SetWindowRelativeMouseMode(this->m_window->get_window_handle(), false);
+    SDL_SetWindowRelativeMouseMode(this->window_->get_window_handle(), false);
 }

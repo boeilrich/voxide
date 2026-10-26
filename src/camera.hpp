@@ -18,18 +18,18 @@ constexpr float FAR_PLANE = 1000.0F;
 class Camera
 {
   private:
-    glm::vec3 m_position;
-    float m_yaw = DEFAULT_YAW;
-    float m_pitch = DEFAULT_PITCH;
+    glm::vec3 position_;
+    float yaw_ = DEFAULT_YAW;
+    float pitch_ = DEFAULT_PITCH;
 
-    float m_fovy = DEFAULT_FOVY;
-    float m_aspect_ratio = DEFAULT_ASPECT_RATIO;
+    float fovy_ = DEFAULT_FOVY;
+    float aspect_ratio_ = DEFAULT_ASPECT_RATIO;
 
-    float m_look_sensitivity = DEFAULT_LOOK_SENSITIVITY;
+    float look_sensitivity_ = DEFAULT_LOOK_SENSITIVITY;
 
-    glm::vec3 m_up = WORLD_UP;
-    glm::vec3 m_front = DEFAULT_FRONT;
-    glm::vec3 m_right = DEFAULT_RIGHT;
+    glm::vec3 up_ = WORLD_UP;
+    glm::vec3 front_ = DEFAULT_FRONT;
+    glm::vec3 right_ = DEFAULT_RIGHT;
 
     void updateDirectionVectors() noexcept;
 

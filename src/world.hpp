@@ -26,13 +26,13 @@ using WorldEvent = struct WorldEvent {
 class World
 {
   private:
-    int m_seed = 0;
-    FastNoiseLite m_noise_generator;
+    int seed_ = 0;
+    FastNoiseLite noise_generator_;
 
-    std::unordered_map<std::uint64_t, std::unique_ptr<Chunk>> m_loaded_chunks;
-    std::queue<WorldEvent> m_events;
+    std::unordered_map<std::uint64_t, std::unique_ptr<Chunk>> loaded_chunks_;
+    std::queue<WorldEvent> events_;
 
-    std::unique_ptr<Player> m_local_player;
+    std::unique_ptr<Player> local_player_;
 
     [[nodiscard]] auto isChunkLoaded(ChunkCoord position) const noexcept -> bool;
     void initializeNoiseGenerator();

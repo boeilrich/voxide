@@ -9,35 +9,35 @@
 #include "coordinates.hpp"
 #include "player.hpp"
 
-World::World(int seed) : m_seed(seed)
+World::World(int seed) : seed_(seed)
 {
-    m_local_player = std::make_unique<Player>(true);
+    local_player_ = std::make_unique<Player>(true);
     initializeNoiseGenerator();
 }
 
 void World::initializeNoiseGenerator()
 {
-    m_noise_generator.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    m_noise_generator.SetFrequency(0.02F);
-    m_noise_generator.SetFractalType(FastNoiseLite::FractalType_FBm);
-    m_noise_generator.SetFractalOctaves(3);
-    m_noise_generator.SetFractalLacunarity(2.0F);
-    m_noise_generator.SetFractalGain(0.7F);
+    noise_generator_.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    noise_generator_.SetFrequency(0.02F);
+    noise_generator_.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise_generator_.SetFractalOctaves(3);
+    noise_generator_.SetFractalLacunarity(2.0F);
+    noise_generator_.SetFractalGain(0.7F);
 
-    m_noise_generator.SetSeed(m_seed);
+    noise_generator_.SetSeed(seed_);
 }
 
 auto World::isChunkLoaded(ChunkCoord position) const noexcept -> bool
 {
     std::uint64_t hash = Chunk::calculateHash(position);
-    return m_loaded_chunks.contains(hash);
+    return loaded_chunks_.contains(hash);
 }
 
 void World::tick()
 {
-    for (const auto& entry : m_loaded_chunks) {
+    for (const auto& entry : loaded_chunks_) {
         if (entry.second->isDirty()) {
-            m_events.emplace(WorldEvent{WorldEventType::ChunkDirty, entry.first, entry.second->getPosition()});
+            events_.emplace(WorldEvent{WorldEventType::ChunkDirty, entry.first, entry.second->getPosition()});
             entry.second->setDirty(false);
         }
     }
@@ -51,7 +51,7 @@ void World::tick()
     }
 
     std::uint64_t hash = Chunk::calculateHash(Coords::world_to_chunk(position));
-    const auto& chunk = m_loaded_chunks.at(hash);
+    const auto& chunk = loaded_chunks_.at(hash);
 
     LocalCoord local_position = Coords::world_to_local(position);
     return chunk->getBlockAt(local_position);
@@ -65,7 +65,7 @@ auto World::trySetBlock(WorldCoord position, Block block) noexcept -> bool
     }
 
     std::uint64_t hash = Chunk::calculateHash(Coords::world_to_chunk(position));
-    auto& chunk = m_loaded_chunks.at(hash);
+    auto& chunk = loaded_chunks_.at(hash);
 
     LocalCoord local_position = Coords::world_to_local(position);
     chunk->setBlockAt(local_position, block);
@@ -81,9 +81,9 @@ auto World::trySetBlock(WorldCoord position, Block block) noexcept -> bool
     }
 
     std::uint64_t hash = Chunk::calculateHash(position);
-    auto iterator = m_loaded_chunks.find(hash);
+    auto iterator = loaded_chunks_.find(hash);
 
-    if (iterator == m_loaded_chunks.end()) {
+    if (iterator == loaded_chunks_.end()) {
         return nullptr;
     }
 
@@ -92,35 +92,35 @@ auto World::trySetBlock(WorldCoord position, Block block) noexcept -> bool
 
 [[nodiscard]] auto World::getSeed() const noexcept -> int
 {
-    return m_seed;
+    return seed_;
 }
 
 void World::setSeed(int seed) noexcept
 {
-    m_seed = seed;
-    m_noise_generator.SetSeed(m_seed);
+    seed_ = seed;
+    noise_generator_.SetSeed(seed_);
 }
 
 auto World::getLocalPlayer() noexcept -> Player*
 {
-    return m_local_player.get();
+    return local_player_.get();
 }
 
 auto World::getEvents() -> std::queue<WorldEvent>&
 {
-    return m_events;
+    return events_;
 }
 
 auto World::generateChunk(ChunkCoord position) -> Chunk&
 {
     std::uint64_t hash = Chunk::calculateHash(position);
 
-    auto [iterator, has_emplaced] = m_loaded_chunks.try_emplace(hash, std::make_unique<Chunk>(position));
+    auto [iterator, has_emplaced] = loaded_chunks_.try_emplace(hash, std::make_unique<Chunk>(position));
 
     for (unsigned char xpos = 0; xpos < CHUNK_SIZE_X; xpos++) {
         for (unsigned char zpos = 0; zpos < CHUNK_SIZE_Z; zpos++) {
-            float value = m_noise_generator.GetNoise(static_cast<float>(xpos + (position.x * CHUNK_SIZE_X)),
-                                                     static_cast<float>(zpos + (position.z * CHUNK_SIZE_Z)));
+            float value = noise_generator_.GetNoise(static_cast<float>(xpos + (position.x * CHUNK_SIZE_X)),
+                                                    static_cast<float>(zpos + (position.z * CHUNK_SIZE_Z)));
             int height = static_cast<int>(((value + 1.0F) / 2.0F) * 64);
 
             for (unsigned char ypos = 0; ypos < CHUNK_SIZE_Y; ypos++) {
@@ -135,7 +135,7 @@ auto World::generateChunk(ChunkCoord position) -> Chunk&
         }
     }
 
-    m_events.emplace(WorldEvent{WorldEventType::ChunkLoaded, hash, position});
+    events_.emplace(WorldEvent{WorldEventType::ChunkLoaded, hash, position});
 
     return *iterator->second;
 }

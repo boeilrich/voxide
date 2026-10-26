@@ -8,10 +8,10 @@ class Entity
 {
   protected:
     static inline std::atomic<std::uint64_t> m_id_counter{0};
-    std::uint64_t m_entity_id = m_id_counter.fetch_add(1, std::memory_order_relaxed);
+    std::uint64_t entity_id = m_id_counter.fetch_add(1, std::memory_order_relaxed);
 
-    glm::vec3 m_position = {0.0F, 0.0F, 0.0F};
-    float m_yaw = 0.0, m_pitch = 0.0;
+    glm::vec3 position_ = {0.0F, 0.0F, 0.0F};
+    float yaw_ = 0.0, pitch_ = 0.0;
 
   public:
     Entity() = default;

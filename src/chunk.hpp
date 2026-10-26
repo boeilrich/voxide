@@ -12,16 +12,16 @@
 class Chunk
 {
   private:
-    ChunkCoord m_position;
-    bool m_dirty_flag = true;
+    ChunkCoord position_;
+    bool is_dirty_ = true;
 
-    std::unique_ptr<std::array<Block, CHUNK_SIZE>> m_blocks = nullptr;
-    std::uint16_t m_air_block_count = CHUNK_SIZE;
+    std::unique_ptr<std::array<Block, CHUNK_SIZE>> blocks_ = nullptr;
+    std::uint16_t air_block_count_ = CHUNK_SIZE;
 
     void initializeBlockArray();
 
   public:
-    Chunk(ChunkCoord position) : m_position(position) {};
+    Chunk(ChunkCoord position) : position_(position) {};
     ~Chunk() = default;
 
     // disable copying

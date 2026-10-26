@@ -8,8 +8,8 @@
 class Player : Entity
 {
   private:
-    std::optional<Camera> m_camera;
-    bool m_local = false;
+    std::optional<Camera> camera_;
+    bool is_local_ = false;
 
   public:
     explicit Player(bool local = false);

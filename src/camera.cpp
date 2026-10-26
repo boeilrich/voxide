@@ -7,11 +7,11 @@
 #include <spdlog/spdlog.h>
 
 Camera::Camera(glm::vec3 position, float yaw, float pitch, float fovy, float aspect_ratio) noexcept
-    : m_position(position),
-      m_yaw(yaw),
-      m_pitch(pitch),
-      m_fovy(fovy),
-      m_aspect_ratio(aspect_ratio)
+    : position_(position),
+      yaw_(yaw),
+      pitch_(pitch),
+      fovy_(fovy),
+      aspect_ratio_(aspect_ratio)
 {
     spdlog::trace("Creating Camera: \n > x={}, y={}, z={}\n > yaw={}, pitch={}\n > fovy={}\n > aspect-ratio={}",
                   position.x, position.y, position.z, yaw, pitch, fovy, aspect_ratio);
@@ -28,106 +28,106 @@ void Camera::updateDirectionVectors() noexcept
 {
     glm::vec3 new_front_vector;
 
-    new_front_vector.x = std::cos(glm::radians(m_yaw)) * std::cos(glm::radians(m_pitch));
-    new_front_vector.y = std::sin(glm::radians(m_pitch));
-    new_front_vector.z = std::sin(glm::radians(m_yaw)) * std::cos(glm::radians(m_pitch));
+    new_front_vector.x = std::cos(glm::radians(yaw_)) * std::cos(glm::radians(pitch_));
+    new_front_vector.y = std::sin(glm::radians(pitch_));
+    new_front_vector.z = std::sin(glm::radians(yaw_)) * std::cos(glm::radians(pitch_));
 
-    m_front = glm::normalize(new_front_vector);
-    m_right = glm::normalize(glm::cross(m_front, WORLD_UP));
-    m_up = glm::normalize(glm::cross(m_right, m_front));
+    front_ = glm::normalize(new_front_vector);
+    right_ = glm::normalize(glm::cross(front_, WORLD_UP));
+    up_ = glm::normalize(glm::cross(right_, front_));
 }
 
 void Camera::handleLookInput(float xoffset, float yoffset, bool constrain_pitch = true) noexcept
 {
-    xoffset *= m_look_sensitivity;
-    yoffset *= m_look_sensitivity;
+    xoffset *= look_sensitivity_;
+    yoffset *= look_sensitivity_;
 
-    m_yaw += xoffset;
-    m_pitch += yoffset;
+    yaw_ += xoffset;
+    pitch_ += yoffset;
 
     if (constrain_pitch) {
-        m_pitch = std::min(m_pitch, 89.999F);
-        m_pitch = std::max(m_pitch, -89.999F);
+        pitch_ = std::min(pitch_, 89.999F);
+        pitch_ = std::max(pitch_, -89.999F);
     }
 
-    m_yaw = std::fmod(m_yaw, 360.0F);
+    yaw_ = std::fmod(yaw_, 360.0F);
 
     updateDirectionVectors();
 }
 
 void Camera::setPosition(glm::vec3 position) noexcept
 {
-    m_position = position;
+    position_ = position;
 }
 
 void Camera::setYaw(float yaw) noexcept
 {
-    m_yaw = yaw;
+    yaw_ = yaw;
     updateDirectionVectors();
 }
 
 void Camera::setPitch(float pitch) noexcept
 {
-    m_pitch = pitch;
+    pitch_ = pitch;
     updateDirectionVectors();
 }
 
 void Camera::setAspectRatio(float aspect_ratio) noexcept
 {
-    m_aspect_ratio = aspect_ratio;
+    aspect_ratio_ = aspect_ratio;
 }
 
 void Camera::setLookSensitivity(float look_sensitivity) noexcept
 {
-    m_look_sensitivity = look_sensitivity;
+    look_sensitivity_ = look_sensitivity;
 }
 
 auto Camera::getPosition() const noexcept -> glm::vec3
 {
-    return m_position;
+    return position_;
 }
 
 auto Camera::getYaw() const noexcept -> float
 {
-    return m_yaw;
+    return yaw_;
 }
 
 auto Camera::getPitch() const noexcept -> float
 {
-    return m_pitch;
+    return pitch_;
 }
 
 auto Camera::getFrontVector() const noexcept -> glm::vec3
 {
-    return m_front;
+    return front_;
 }
 
 auto Camera::getUpVector() const noexcept -> glm::vec3
 {
-    return m_up;
+    return up_;
 }
 
 auto Camera::getRightVector() const noexcept -> glm::vec3
 {
-    return m_right;
+    return right_;
 }
 
 auto Camera::getAspectRatio() const noexcept -> float
 {
-    return m_aspect_ratio;
+    return aspect_ratio_;
 }
 
 auto Camera::getLookSensitivity() const noexcept -> float
 {
-    return m_look_sensitivity;
+    return look_sensitivity_;
 }
 
 auto Camera::getViewMatrix() const noexcept -> glm::mat4
 {
-    return glm::lookAt(m_position, m_position + m_front, m_up);
+    return glm::lookAt(position_, position_ + front_, up_);
 }
 
 auto Camera::getProjectionMatrix() const noexcept -> glm::mat4
 {
-    return glm::perspective(glm::radians(m_fovy), m_aspect_ratio, NEAR_PLANE, FAR_PLANE);
+    return glm::perspective(glm::radians(fovy_), aspect_ratio_, NEAR_PLANE, FAR_PLANE);
 }

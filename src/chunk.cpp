@@ -10,8 +10,8 @@ void Chunk::initializeBlockArray()
         return;
     }
 
-    m_blocks = std::make_unique<std::array<Block, CHUNK_SIZE>>();
-    m_blocks->fill(Block::AIR);
+    blocks_ = std::make_unique<std::array<Block, CHUNK_SIZE>>();
+    blocks_->fill(Block::AIR);
 }
 
 auto Chunk::getBlockAt(LocalCoord position) const noexcept -> Block
@@ -20,7 +20,7 @@ auto Chunk::getBlockAt(LocalCoord position) const noexcept -> Block
         return Block::AIR;
     }
 
-    return (*m_blocks)[position.to_index()];
+    return (*blocks_)[position.to_index()];
 }
 
 void Chunk::setBlockAt(LocalCoord position, Block block, bool supress_dirty)
@@ -34,31 +34,31 @@ void Chunk::setBlockAt(LocalCoord position, Block block, bool supress_dirty)
     }
 
     const std::uint16_t index = position.to_index();
-    Block current_block = (*this->m_blocks)[index];
+    Block current_block = (*this->blocks_)[index];
 
     if (current_block != block) {
-        (*m_blocks)[index] = block;
+        (*blocks_)[index] = block;
 
         if (block != Block::AIR && current_block == Block::AIR) {
-            m_air_block_count--;
+            air_block_count_--;
         } else if (block == Block::AIR && current_block != Block::AIR) {
-            m_air_block_count++;
+            air_block_count_++;
         }
 
         // delete chunk array if chunk is completly made of air
-        if (m_air_block_count == CHUNK_SIZE) {
-            m_blocks = nullptr;
+        if (air_block_count_ == CHUNK_SIZE) {
+            blocks_ = nullptr;
         }
     }
 
     if (!supress_dirty) {
-        m_dirty_flag = true;
+        is_dirty_ = true;
     }
 }
 
 auto Chunk::getPosition() const noexcept -> ChunkCoord
 {
-    return m_position;
+    return position_;
 }
 
 auto Chunk::calculateHash(const ChunkCoord& position) noexcept -> uint64_t
@@ -84,20 +84,20 @@ auto Chunk::calculateHash(const ChunkCoord& position) noexcept -> uint64_t
 
 auto Chunk::getHash() const noexcept -> std::uint64_t
 {
-    return Chunk::calculateHash(m_position);
+    return Chunk::calculateHash(position_);
 }
 
 auto Chunk::isDirty() const noexcept -> bool
 {
-    return m_dirty_flag;
+    return is_dirty_;
 }
 
 void Chunk::setDirty(bool dirty) noexcept
 {
-    m_dirty_flag = dirty;
+    is_dirty_ = dirty;
 }
 
 auto Chunk::isEmpty() const noexcept -> bool
 {
-    return m_air_block_count == CHUNK_SIZE;
+    return air_block_count_ == CHUNK_SIZE;
 }

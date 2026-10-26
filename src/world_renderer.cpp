@@ -9,16 +9,16 @@
 
 #include "world.hpp"
 
-WorldRenderer::WorldRenderer(World* world) : m_world(world)
+WorldRenderer::WorldRenderer(World* world) : world_(world)
 {
-    m_program = std::make_unique<ShaderProgram>("./assets/shader/vertex.glsl", "./assets/shader/fragment.glsl");
+    program_ = std::make_unique<ShaderProgram>("./assets/shader/vertex.glsl", "./assets/shader/fragment.glsl");
 
     loadTextureAtlas();
 }
 
 WorldRenderer::~WorldRenderer()
 {
-    glDeleteTextures(1, &m_texture_atlas_handle);
+    glDeleteTextures(1, &texture_atlas_handle_);
 }
 
 auto WorldRenderer::loadTextureAtlas() -> bool
@@ -33,11 +33,11 @@ auto WorldRenderer::loadTextureAtlas() -> bool
     }
 
     // generate texture if it does not exist
-    if (m_texture_atlas_handle == 0) {
-        glGenTextures(1, &m_texture_atlas_handle);
+    if (texture_atlas_handle_ == 0) {
+        glGenTextures(1, &texture_atlas_handle_);
     }
 
-    glBindTexture(GL_TEXTURE_2D, m_texture_atlas_handle);
+    glBindTexture(GL_TEXTURE_2D, texture_atlas_handle_);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -52,7 +52,7 @@ auto WorldRenderer::loadTextureAtlas() -> bool
 
 void WorldRenderer::processEvents()
 {
-    auto& events = m_world->getEvents();
+    auto& events = world_->getEvents();
 
     while (!events.empty()) {
         auto event = events.front();
@@ -60,15 +60,15 @@ void WorldRenderer::processEvents()
 
         switch (event.type) {
             case WorldEventType::ChunkLoaded: {
-                m_meshes.emplace(event.hash, std::make_unique<ChunkMesh>(event.position));
+                meshes_.emplace(event.hash, std::make_unique<ChunkMesh>(event.position));
                 break;
             }
             case WorldEventType::ChunkUnloaded: {
                 break;
             }
             case WorldEventType::ChunkDirty: {
-                auto& mesh = m_meshes.at(event.hash);
-                mesh->generate(*m_world->tryGetChunk(event.position), *m_world);
+                auto& mesh = meshes_.at(event.hash);
+                mesh->generate(*world_->tryGetChunk(event.position), *world_);
                 break;
             }
             default:
@@ -81,16 +81,16 @@ void WorldRenderer::render()
 {
     processEvents();
 
-    if (!m_program->use()) {
+    if (!program_->use()) {
         spdlog::error("Failed to use Shader Program");
     }
 
-    Camera* camera = m_world->getLocalPlayer()->getCamera();
+    Camera* camera = world_->getLocalPlayer()->getCamera();
 
-    m_program->setUniform("view", camera->getViewMatrix());
-    m_program->setUniform("projection", camera->getProjectionMatrix());
+    program_->setUniform("view", camera->getViewMatrix());
+    program_->setUniform("projection", camera->getProjectionMatrix());
 
-    for (auto& entry : m_meshes) {
+    for (auto& entry : meshes_) {
         ChunkCoord position = entry.second->getPosition();
         auto model = glm::mat4(1.0F);
 
@@ -98,7 +98,7 @@ void WorldRenderer::render()
                                        position.y * static_cast<int>(CHUNK_SIZE_Y),
                                        position.z * static_cast<int>(CHUNK_SIZE_Z)});
 
-        m_program->setUniform("model", model);
+        program_->setUniform("model", model);
         entry.second->render();
     }
 }
