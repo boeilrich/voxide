@@ -1,271 +1,397 @@
 #include "window.hpp"
 
+#include <optional>
 #include <stdexcept>
-#include <utility>
 
-#include <SDL3/SDL_events.h>
-#include <SDL3/SDL_mouse.h>
-#include <SDL3/SDL_oldnames.h>
-#include <SDL3/SDL_video.h>
-#include <glad/gl.h>
 #include <spdlog/spdlog.h>
 
-constexpr int DEFAULT_WIDTH = 1024;
-constexpr int DEFAULT_HEIGHT = 768;
-
-auto Window::create_context() -> bool
+Window::Window(const std::string& title, int width, int height, SDL_WindowFlags flags, bool create_gl_context,
+               const GLContextInfo& info)
 {
-    // set OpenGL version
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-
-    // "enforce" modern opengl, required on macOS
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-
-    // set core profile
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-
-    // request multisample buffer with 8x
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
-
-    // enable doublebuffering, required for vsync
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-    // 24-bit depth buffer
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-
-    SDL_GLContext context = SDL_GL_CreateContext(this->window_handle_);
-    if (context == nullptr) {
-        spdlog::error("Failed to create SDL3 OpenGL context: {}", SDL_GetError());
-        return false;
+    // setup the opengl context arguments and set flag if opengl context is requested by caller
+    if (create_gl_context) {
+        this->setupGLContextParameters(info);
+        flags |= SDL_WINDOW_OPENGL;
     }
 
-    SDL_GL_MakeCurrent(this->window_handle_, context);
-    if (!SDL_GL_SetSwapInterval(0)) {
-        spdlog::warn("Failed to enable VSync: {}", SDL_GetError());
+    handle_ = SDL_CreateWindow(title.c_str(), width, height, flags);
+
+    if (!handle_) {
+        throw std::runtime_error(SDL_GetError());
     }
 
-    this->context_ = context;
-
-    int minor = 0;
-    int major = 0;
-    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &major);
-    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &minor);
-
-    spdlog::info("OpenGL {}.{} Context!", major, minor);
-
-    return true;
-}
-
-Window::Window(const std::string& title, int width = DEFAULT_WIDTH, int height = DEFAULT_HEIGHT,
-               SDL_WindowFlags flags = 0)
-{
-    spdlog::trace("Creating Window ('{}') w={}, h={}, flags={}", title, width, height, flags);
-
-    this->visible_ = (flags & SDL_WINDOW_HIDDEN) == 0;
-    this->resizeable_ = (flags & SDL_WINDOW_RESIZABLE) != 0;
-    this->fullscreen_ = (flags & SDL_WINDOW_FULLSCREEN) != 0;
-    this->always_on_top_ = (flags & SDL_WINDOW_ALWAYS_ON_TOP) != 0;
-    this->capturing_mouse_ = false;
-
-    this->window_handle_ = SDL_CreateWindow(title.c_str(), width, height, flags | SDL_WINDOW_OPENGL);
-    if (this->window_handle_ == nullptr) {
-        spdlog::error("Failed to create SDL3 Window!");
-        throw std::runtime_error("Failed to create SDL3 Window!");
+    if (!create_gl_context) {
+        return;
     }
 
-    if (!this->create_context()) {
-        throw std::runtime_error("Failed to create SDL3 OpenGL context!");
+    context_ = SDL_GL_CreateContext(handle_);
+
+    if (!context_) {
+        SDL_DestroyWindow(handle_);
+        throw std::runtime_error(SDL_GetError());
     }
 
-    int version = gladLoadGL(reinterpret_cast<GLADloadfunc>(SDL_GL_GetProcAddress));
-    if (version == 0) {
-        spdlog::error("Failed to initialize GLAD!");
-        throw std::runtime_error("Failed to initialize GLAD!");
-    }
-    spdlog::info("OpenGL {}.{}", GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
-
-    glViewport(0, 0, width, height);
+    this->populateGLContextInfo();
 }
 
 Window::~Window()
 {
-    spdlog::trace("Destroying Window {}", fmt::ptr(this->window_handle_));
-
-    assert(this->context_ != nullptr);
-    SDL_GL_DestroyContext(this->context_);
-
-    assert(this->window_handle_ != nullptr);
-    SDL_DestroyWindow(this->window_handle_);
-}
-
-[[nodiscard]] auto Window::get_window_handle() const noexcept -> SDL_Window*
-{
-    return this->window_handle_;
-}
-
-[[nodiscard]] auto Window::get_context() const noexcept -> SDL_GLContext
-{
-    return this->context_;
-}
-
-void Window::handle_event(SDL_WindowEvent event) noexcept
-{
-    switch (event.type) {
-        case SDL_EVENT_WINDOW_SHOWN:
-            this->visible_ = true;
-            spdlog::trace("Setting window visibility to {}", this->visible_);
-            break;
-        case SDL_EVENT_WINDOW_HIDDEN:
-            this->visible_ = false;
-            spdlog::trace("Setting window visibility to {}", this->visible_);
-            break;
-        case SDL_EVENT_WINDOW_MOVED:
-            this->position_ = {event.data1, event.data2};
-            // spdlog::trace("Window moved to x={}, y={}", event.data1, event.data2);
-            break;
-        case SDL_EVENT_WINDOW_RESIZED:
-            this->size_ = {event.data1, event.data2};
-            glViewport(0, 0, event.data1, event.data2);
-            // spdlog::trace("Window resized to w={}, h={}", event.data1, event.data2);
-            break;
-        case SDL_EVENT_WINDOW_ENTER_FULLSCREEN:
-            this->fullscreen_ = true;
-            spdlog::trace("Setting window fullscreen to {}", this->fullscreen_);
-            break;
-        case SDL_EVENT_WINDOW_LEAVE_FULLSCREEN:
-            this->fullscreen_ = false;
-            spdlog::trace("Setting window fullscreen to {}", this->fullscreen_);
-            break;
-        default:
-            break;
+    if (context_) {
+        if (SDL_GL_GetCurrentContext() == context_) {
+            SDL_GL_MakeCurrent(nullptr, nullptr);
+        }
+        SDL_GL_DestroyContext(context_);
+    }
+    if (handle_) {
+        SDL_DestroyWindow(handle_);
     }
 }
 
-void Window::set_visible(bool visible) noexcept
+Window::Window(Window&& other) noexcept
+    : handle_(other.handle_),
+      context_(other.context_),
+      context_info_(other.context_info_)
+{
+    other.handle_ = nullptr;
+    other.context_ = nullptr;
+}
+
+auto Window::operator=(Window&& other) noexcept -> Window&
+{
+    if (this != &other) {
+        if (context_) {
+            SDL_GL_DestroyContext(context_);
+        }
+        if (handle_) {
+            SDL_DestroyWindow(handle_);
+        }
+
+        handle_ = other.handle_;
+        context_ = other.context_;
+        context_info_ = other.context_info_;
+
+        other.handle_ = nullptr;
+        other.context_ = nullptr;
+    }
+    return *this;
+}
+
+auto Window::swapBuffers() -> bool
+{
+    if (!context_) {
+        spdlog::warn("swapBuffers() called on window without gl context");
+        return false;
+    }
+
+    if (!SDL_GL_SwapWindow(handle_)) {
+        spdlog::error("failed to swap buffers: {}", SDL_GetError());
+        return false;
+    }
+
+    return true;
+}
+
+auto Window::makeContextCurrent() -> bool
+{
+    if (!context_) {
+        spdlog::warn("makeContextCurrent() called on window with no gl context");
+        return false;
+    }
+
+    return SDL_GL_MakeCurrent(handle_, context_);
+}
+
+auto Window::setVisible(bool visible) noexcept -> bool
 {
     if (visible) {
-        SDL_ShowWindow(this->window_handle_);
+        return SDL_ShowWindow(handle_);
     } else {
-        SDL_HideWindow(this->window_handle_);
+        return SDL_HideWindow(handle_);
     }
 }
 
-void Window::set_title(const std::string& title) noexcept
+auto Window::setTitle(const std::string& title) noexcept -> bool
 {
-    SDL_SetWindowTitle(this->window_handle_, title.c_str());
-    this->title_ = title;
+    return SDL_SetWindowTitle(handle_, title.c_str());
 }
 
-void Window::set_size(int width, int height) noexcept
+auto Window::setSize(int width, int height) noexcept -> bool
 {
-    SDL_SetWindowSize(this->window_handle_, width, height);
+    return SDL_SetWindowSize(handle_, width, height);
 }
 
-void Window::set_position(int xpos, int ypos) noexcept
+auto Window::setPosition(int xpos, int ypos) noexcept -> bool
 {
-    SDL_SetWindowPosition(this->window_handle_, xpos, ypos);
+    return SDL_SetWindowPosition(handle_, xpos, ypos);
 }
 
-void Window::set_resizable(bool resizable) noexcept
+auto Window::setResizable(bool resizable) noexcept -> bool
 {
-    SDL_SetWindowResizable(this->window_handle_, resizable);
-    this->resizeable_ = resizable;
+    return SDL_SetWindowResizable(handle_, resizable);
 }
 
-void Window::set_fullscreen(bool fullscreen) noexcept
+auto Window::setFullscreen(bool fullscreen) noexcept -> bool
 {
-    SDL_SetWindowFullscreen(this->window_handle_, fullscreen);
+    return SDL_SetWindowFullscreen(handle_, fullscreen);
 }
 
-void Window::set_always_on_top(bool always_on_top) noexcept
+auto Window::setAlwaysOnTop(bool always_on_top) noexcept -> bool
 {
-    SDL_SetWindowAlwaysOnTop(this->window_handle_, always_on_top);
-    this->always_on_top_ = always_on_top;
+    return SDL_SetWindowAlwaysOnTop(handle_, always_on_top);
 }
 
-void Window::set_capturing_mouse(bool capturing_mouse) noexcept
+auto Window::setRelativeMouseMode(bool relative_mouse_mode) noexcept -> bool
 {
-    SDL_SetWindowRelativeMouseMode(this->window_handle_, capturing_mouse);
-    this->capturing_mouse_ = capturing_mouse;
+    return SDL_SetWindowRelativeMouseMode(handle_, relative_mouse_mode);
 }
 
-// mode: 0 = disabled, 1 = enabled, -1 = adaptive
-void Window::set_vsync_mode(int mode) noexcept
+auto Window::setVSync(int swap_interval) noexcept -> bool
 {
-    SDL_GL_MakeCurrent(this->window_handle_, this->context_);
-
-    if (!SDL_GL_SetSwapInterval(mode)) {
-        spdlog::warn("Failed to change VSync mode: {}", SDL_GetError());
-        return;
+    if (!context_) {
+        return false;
     }
 
-    this->vsync_mode_ = mode;
+    this->storeContext();
+
+    if (!this->makeContextCurrent()) {
+        this->restoreContext();
+        return false;
+    }
+
+    if (!SDL_GL_SetSwapInterval(swap_interval)) {
+        spdlog::error("failed to set vsync state: {}", SDL_GetError());
+        this->restoreContext();
+        return false;
+    }
+
+    this->restoreContext();
+
+    return true;
 }
 
-auto Window::get_title() const noexcept -> std::string
+auto Window::getTitle() const -> std::string
 {
-    const char* title = SDL_GetWindowTitle(this->window_handle_);
-    return {title};
+    return SDL_GetWindowTitle(handle_);
 }
 
-auto Window::get_size() const noexcept -> std::pair<int, int>
+auto Window::getSize() const noexcept -> std::pair<int, int>
 {
-    return this->size_;
+    int width = 0;
+    int height = 0;
+    SDL_GetWindowSize(handle_, &width, &height);
+    return {width, height};
 }
 
-auto Window::get_width() const noexcept -> int
+auto Window::getWidth() const noexcept -> int
 {
-    return this->size_.first;
+    int width = 0;
+    SDL_GetWindowSize(handle_, &width, nullptr);
+    return width;
 }
 
-auto Window::get_height() const noexcept -> int
+auto Window::getHeight() const noexcept -> int
 {
-    return this->size_.second;
+    int height = 0;
+    SDL_GetWindowSize(handle_, nullptr, &height);
+    return height;
 }
 
-auto Window::get_position() const noexcept -> std::pair<int, int>
+auto Window::getAspectRatio() const noexcept -> float
 {
-    return this->position_;
+    std::pair<int, int> size = this->getSize();
+
+    // protect against 0 height
+    if (size.second == 0) {
+        return 0;
+    }
+
+    return static_cast<float>(size.first) / static_cast<float>(size.second);
 }
 
-auto Window::get_xpos() const noexcept -> int
+auto Window::getPosition() const noexcept -> std::pair<int, int>
 {
-    return this->position_.first;
+    int xpos = 0;
+    int ypos = 0;
+    SDL_GetWindowPosition(handle_, &xpos, &ypos);
+    return {xpos, ypos};
 }
 
-auto Window::get_ypos() const noexcept -> int
+auto Window::getXPos() const noexcept -> int
 {
-    return this->position_.second;
+    int xpos = 0;
+    SDL_GetWindowPosition(handle_, &xpos, nullptr);
+    return xpos;
 }
 
-auto Window::is_visible() const noexcept -> bool
+auto Window::getYPos() const noexcept -> int
 {
-    return this->visible_;
+    int ypos = 0;
+    SDL_GetWindowPosition(handle_, nullptr, &ypos);
+    return ypos;
 }
 
-auto Window::is_resizable() const noexcept -> bool
+auto Window::isVisible() const noexcept -> bool
 {
-    return this->resizeable_;
+    return !(SDL_GetWindowFlags(handle_) & SDL_WINDOW_HIDDEN);
 }
 
-auto Window::is_fullscreen() const noexcept -> bool
+auto Window::isResizable() const noexcept -> bool
 {
-    return this->fullscreen_;
+    return SDL_GetWindowFlags(handle_) & SDL_WINDOW_RESIZABLE;
 }
 
-auto Window::is_always_on_top() const noexcept -> bool
+auto Window::isFullscreen() const noexcept -> bool
 {
-    return this->always_on_top_;
+    return SDL_GetWindowFlags(handle_) & SDL_WINDOW_FULLSCREEN;
 }
 
-auto Window::is_capturing_mouse() const noexcept -> bool
+auto Window::isAlwaysOnTop() const noexcept -> bool
 {
-    return this->capturing_mouse_;
+    return SDL_GetWindowFlags(handle_) & SDL_WINDOW_ALWAYS_ON_TOP;
 }
 
-auto Window::get_vsync_mode() const noexcept -> int
+auto Window::getRelativeMouseMode() const noexcept -> bool
 {
-    return this->vsync_mode_;
+    return SDL_GetWindowFlags(handle_) & SDL_WINDOW_MOUSE_RELATIVE_MODE;
+}
+
+auto Window::getVSync() noexcept -> std::optional<int>
+{
+    if (!context_) {
+        return std::nullopt;
+    }
+
+    this->storeContext();
+
+    if (!this->makeContextCurrent()) {
+        this->restoreContext();
+        return std::nullopt;
+    }
+
+    int swap_interval = 0;
+    if (!SDL_GL_GetSwapInterval(&swap_interval)) {
+        spdlog::error("failed to get vsync state: {}", SDL_GetError());
+        this->restoreContext();
+        return std::nullopt;
+    }
+
+    this->restoreContext();
+    return swap_interval;
+}
+
+auto Window::getHandle() const noexcept -> SDL_Window*
+{
+    return handle_;
+}
+
+auto Window::getContext() const noexcept -> SDL_GLContext
+{
+    return context_;
+}
+
+void Window::storeContext()
+{
+    store_.context_ = SDL_GL_GetCurrentContext();
+    store_.handle_ = SDL_GL_GetCurrentWindow();
+}
+
+void Window::restoreContext()
+{
+    if (!SDL_GL_MakeCurrent(store_.handle_, store_.context_)) {
+        spdlog::warn("failed to restore context: {}", SDL_GetError());
+    }
+}
+
+void Window::populateGLContextInfo()
+{
+    GLContextInfo info{};
+
+    SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &info.color_buffer.red_size);
+    SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &info.color_buffer.green_size);
+    SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &info.color_buffer.blue_size);
+    SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &info.color_buffer.alpha_size);
+    SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &info.depth_buffer_size);
+    SDL_GL_GetAttribute(SDL_GL_STENCIL_SIZE, &info.stencil_buffer_size);
+
+    int doublebuffering = 0;
+    SDL_GL_GetAttribute(SDL_GL_DOUBLEBUFFER, &doublebuffering);
+    info.doublebuffering = doublebuffering > 0;
+
+    int hardware_acceleration = 0;
+    SDL_GL_GetAttribute(SDL_GL_ACCELERATED_VISUAL, &hardware_acceleration);
+    info.hardware_acceleration = hardware_acceleration > 0;
+
+    int multisampling = 0;
+    SDL_GL_GetAttribute(SDL_GL_MULTISAMPLEBUFFERS, &multisampling);
+    info.multisampling.enabled = multisampling > 0;
+    if (info.multisampling.enabled) {
+        SDL_GL_GetAttribute(SDL_GL_MULTISAMPLESAMPLES, &info.multisampling.samples);
+    }
+
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, &info.version.major);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, &info.version.minor);
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, &info.version.profile_mask);
+
+    int flags = 0;
+    SDL_GL_GetAttribute(SDL_GL_CONTEXT_FLAGS, &flags);
+    info.version.debug_context = (flags & SDL_GL_CONTEXT_DEBUG_FLAG) > 0;
+    info.version.forward_compatible = (flags & SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG) > 0;
+
+    context_info_ = info;
+    spdlog::debug(
+        "got OpenGL context: {}.{} (profile={}, debug={}, forward_compat={})\n"
+        "  - color: {}/{}/{}/{}\n"
+        "  - depth: {}\n"
+        "  - stencil: {}\n"
+        "  - doublebuffer: {}\n"
+        "  - hw_accel: {}\n"
+        "  - msaa: {} x{}",
+        info.version.major, info.version.minor, info.version.profile_mask, info.version.debug_context,
+        info.version.forward_compatible, info.color_buffer.red_size, info.color_buffer.green_size,
+        info.color_buffer.blue_size, info.color_buffer.alpha_size, info.depth_buffer_size, info.stencil_buffer_size,
+        info.doublebuffering, info.hardware_acceleration, info.multisampling.enabled, info.multisampling.samples);
+}
+
+void Window::setupGLContextParameters(const GLContextInfo& info)
+{
+    spdlog::debug(
+        "requesting OpenGL context: {}.{} (profile={}, debug={}, forward_compat={})\n"
+        "  - color: {}/{}/{}/{}\n"
+        "  - depth: {}\n"
+        "  - stencil: {}\n"
+        "  - doublebuffer: {}\n"
+        "  - hw_accel: {}\n"
+        "  - msaa: {} x{}",
+        info.version.major, info.version.minor, info.version.profile_mask, info.version.debug_context,
+        info.version.forward_compatible, info.color_buffer.red_size, info.color_buffer.green_size,
+        info.color_buffer.blue_size, info.color_buffer.alpha_size, info.depth_buffer_size, info.stencil_buffer_size,
+        info.doublebuffering, info.hardware_acceleration, info.multisampling.enabled, info.multisampling.samples);
+
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, info.color_buffer.red_size);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, info.color_buffer.green_size);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, info.color_buffer.blue_size);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, info.color_buffer.alpha_size);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, info.depth_buffer_size);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, info.stencil_buffer_size);
+
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, info.doublebuffering ? 1 : 0);
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, info.hardware_acceleration ? 1 : 0);
+
+    if (info.multisampling.enabled) {
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, info.multisampling.samples);
+    } else {
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
+    }
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, info.version.major);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, info.version.minor);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, info.version.profile_mask);
+
+    int flags = 0;
+    if (info.version.forward_compatible)
+        flags |= SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
+    if (info.version.debug_context)
+        flags |= SDL_GL_CONTEXT_DEBUG_FLAG;
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, flags);
 }

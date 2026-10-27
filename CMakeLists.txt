@@ -69,7 +69,9 @@ target_compile_options(${PROJECT_NAME}
 
         # no optimization + sanitizers for debug build
         $<$<CONFIG:Debug>:-O0>
+        $<$<CONFIG:Debug>:-g>
         $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+        $<$<CONFIG:Debug>:-fsanitize-ignorelist=${CMAKE_SOURCE_DIR}/sanitizer.ignore>
         $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
 )
 

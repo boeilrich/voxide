@@ -40,14 +40,20 @@ void Engine::initializeImGui() noexcept
     ImGuiIO& imgui_io = ImGui::GetIO();
     imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-    ImGui_ImplSDL3_InitForOpenGL(this->window_->get_window_handle(), this->window_->get_context());
+    ImGui_ImplSDL3_InitForOpenGL(this->window_->getHandle(), this->window_->getContext());
     ImGui_ImplOpenGL3_Init();
 }
 
 void Engine::init()
 {
-    this->window_ =
-        std::make_unique<Window>("test window", DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, SDL_WINDOW_RESIZABLE);
+    SDL_WindowFlags flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+
+    this->window_ = std::make_unique<Window>("voxide", DEFAULT_WINDOW_WIDTH, DEFAULT_WINDOW_HEIGHT, flags, true);
+
+    window_->setVSync(1);
+    if (!gladLoadGL((GLADloadfunc)SDL_GL_GetProcAddress)) {
+        spdlog::error("failed to load glad functions");
+    }
 
     this->world_ = std::make_unique<World>();
     this->world_->generateArea(ChunkCoord(0, 0, 0), 10, 3, 10);
@@ -58,7 +64,7 @@ void Engine::init()
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
-    this->window_->set_capturing_mouse(true);
+    this->window_->setRelativeMouseMode(true);
     this->initializeImGui();
 }
 
@@ -72,7 +78,7 @@ void Engine::updateFrametimes() noexcept
     this->total_time_passed_ += this->frame_data_.delta_time;
     this->time_since_last_log_ += this->frame_data_.delta_time;
 
-    this->window_->set_title(std::format("test window | {:.4}s", this->total_time_passed_));
+    this->window_->setTitle(std::format("test window | {:.4}s", this->total_time_passed_));
 
     if (this->time_since_last_log_ > 5.0) {
         double average_frame_time = 0.0;
@@ -95,20 +101,15 @@ void Engine::processEvents() noexcept
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         // Send all events to imgui, if the camera is not being controlled
-        if (!this->window_->is_capturing_mouse()) {
+        if (!this->window_->getRelativeMouseMode()) {
             ImGui_ImplSDL3_ProcessEvent(&event);
         }
 
-        // Send all window related events to the window
-        if (event.type >= SDL_EVENT_WINDOW_FIRST && event.type <= SDL_EVENT_WINDOW_LAST) {
-            this->window_->handle_event(event.window);
-        }
-
-        if (event.type == SDL_EVENT_MOUSE_MOTION && this->window_->is_capturing_mouse()) {
+        if (event.type == SDL_EVENT_MOUSE_MOTION && this->window_->getRelativeMouseMode()) {
             this->world_->getLocalPlayer()->getCamera()->handleLookInput(event.motion.xrel, -event.motion.yrel, true);
         }
         if (event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_ESCAPE) {
-            this->window_->set_capturing_mouse(!this->window_->is_capturing_mouse());
+            this->window_->setRelativeMouseMode(!this->window_->getRelativeMouseMode());
         }
         if (event.type == SDL_EVENT_WINDOW_RESIZED) {
             this->world_->getLocalPlayer()->getCamera()->setAspectRatio(static_cast<float>(event.window.data1) /
@@ -139,7 +140,7 @@ void Engine::endFrame() noexcept
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    SDL_GL_SwapWindow(this->window_->get_window_handle());
+    SDL_GL_SwapWindow(this->window_->getHandle());
 }
 
 void Engine::run()
@@ -151,7 +152,7 @@ void Engine::run()
 
         this->processEvents();
 
-        if (this->window_->is_capturing_mouse()) {
+        if (this->window_->getRelativeMouseMode()) {
             this->world_->getLocalPlayer()->tick(static_cast<float>(this->frame_data_.delta_time));
         }
 
@@ -164,7 +165,7 @@ void Engine::run()
         ImGui::Text("Orientation: Yaw: %.2f Pitch: %.2f", camera->getYaw(), camera->getPitch());
         ImGui::End();
 
-        if (!this->window_->is_capturing_mouse()) {
+        if (!this->window_->getRelativeMouseMode()) {
             ImGui::Begin("Settings", nullptr, 0);
             ImGui::Checkbox("Wireframe", &this->checkbox_is_ticked_);
 
@@ -192,5 +193,5 @@ void Engine::run()
     ImGui::DestroyContext();
 
     // needed to avoid segmentation fault when force quitting
-    SDL_SetWindowRelativeMouseMode(this->window_->get_window_handle(), false);
+    window_->setRelativeMouseMode(false);
 }
